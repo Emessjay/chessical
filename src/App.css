@@ -1,0 +1,436 @@
+.app-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  color: var(--muted, #888);
+}
+
+.app-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.app {
+  display: grid;
+  grid-template-columns: minmax(200px, 280px) 1fr;
+  grid-template-rows: 1fr;
+  flex: 1;
+  min-height: 0;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--sidebar-bg, #1e1e2e);
+  border-bottom: 1px solid var(--border, #333);
+  padding: 0.5rem 1rem;
+}
+
+.app-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text, inherit);
+}
+
+.app-nav {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.app-nav-link {
+  color: var(--text, inherit);
+  text-decoration: none;
+  font-size: 0.95rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+.app-nav-link:hover {
+  background: var(--hover-bg, rgba(255, 255, 255, 0.08));
+}
+
+/* Login page */
+.login-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 1rem;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 360px;
+  padding: 2rem;
+  background: var(--sidebar-bg, #1e1e2e);
+  border: 1px solid var(--border, #333);
+  border-radius: 12px;
+}
+
+.login-title {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.5rem;
+  color: var(--text, inherit);
+}
+
+.login-subtitle {
+  margin: 0 0 1.5rem 0;
+  font-size: 0.95rem;
+  color: var(--muted, #888);
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.login-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text, inherit);
+}
+
+.login-input {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border, #333);
+  border-radius: 6px;
+  background: var(--input-bg, #2a2a2e);
+  color: var(--text, inherit);
+  font-size: 1rem;
+}
+
+.login-input:focus {
+  outline: 2px solid var(--accent, #646cff);
+  outline-offset: 2px;
+}
+
+.login-error {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--error-text, #e88);
+}
+
+.login-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.login-button {
+  padding: 0.6rem 1rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.login-button-primary {
+  background: var(--accent, #646cff);
+  border: none;
+  color: #fff;
+}
+
+.login-button-primary:hover {
+  filter: brightness(1.1);
+}
+
+.login-button-secondary {
+  background: transparent;
+  border: 1px solid var(--border, #333);
+  color: var(--text, inherit);
+}
+
+.login-button-secondary:hover {
+  background: var(--hover-bg, rgba(255, 255, 255, 0.08));
+}
+
+/* Account page (inside app-content, below top bar) */
+.account-page {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.account-card {
+  width: 100%;
+  max-width: 360px;
+  padding: 2rem;
+  background: var(--sidebar-bg, #1e1e2e);
+  border: 1px solid var(--border, #333);
+  border-radius: 12px;
+}
+
+.account-title {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.5rem;
+  color: var(--text, inherit);
+}
+
+.account-user {
+  margin: 0 0 1.5rem 0;
+  font-size: 1rem;
+  color: var(--text, inherit);
+}
+
+.account-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.account-link {
+  color: var(--accent, #646cff);
+  text-decoration: none;
+  font-size: 1rem;
+}
+
+.account-link:hover {
+  text-decoration: underline;
+}
+
+.account-button {
+  padding: 0.6rem 1rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  text-align: left;
+  width: fit-content;
+}
+
+.account-button-logout {
+  background: transparent;
+  border: 1px solid var(--border, #333);
+  color: var(--text, inherit);
+}
+
+.account-button-logout:hover {
+  background: var(--hover-bg, rgba(255, 255, 255, 0.08));
+}
+
+.sidebar {
+  background: var(--sidebar-bg, #1e1e2e);
+  padding: 1rem;
+  border-right: 1px solid var(--border, #333);
+}
+
+.main {
+  padding: 1.5rem;
+  overflow: auto;
+}
+
+.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  color: var(--muted, #888);
+}
+
+.placeholder p {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+/* OpeningsMenu */
+.openings-menu {
+  padding: 0;
+}
+
+.menu-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem 0;
+  color: var(--text, inherit);
+}
+
+.menu-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.menu-list li {
+  margin: 0;
+}
+
+.menu-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  margin-bottom: 0.25rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text, inherit);
+  font-size: 0.95rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.menu-item:hover {
+  background: var(--hover-bg, rgba(255, 255, 255, 0.08));
+}
+
+.menu-item.selected {
+  background: var(--accent-bg, rgba(100, 108, 255, 0.25));
+}
+
+.menu-item-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menu-item-eco {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+/* Mode controls */
+.mode-controls {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border, #333);
+}
+
+.mode-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text, inherit);
+}
+
+.mode-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.mode-buttons button {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border, #333);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text, inherit);
+  font-size: 0.9rem;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.mode-buttons button:hover {
+  background: var(--hover-bg, rgba(255, 255, 255, 0.08));
+}
+
+.mode-buttons button.active {
+  background: var(--accent-bg, rgba(100, 108, 255, 0.25));
+  border-color: var(--accent, #646cff);
+}
+
+/* BoardView */
+.board-view {
+  max-width: 560px;
+}
+
+.board-view-title {
+  font-size: 1.25rem;
+  margin: 0 0 1rem 0;
+  color: var(--text, inherit);
+}
+
+.board-error {
+  margin: 0 0 0.75rem 0;
+  padding: 0.5rem 0.75rem;
+  background: rgba(220, 80, 80, 0.2);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  color: var(--error-text, #e88);
+}
+
+.practice-complete {
+  margin: 0 0 0.75rem 0;
+  padding: 0.5rem 0.75rem;
+  background: rgba(80, 180, 120, 0.2);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  color: var(--text, inherit);
+}
+
+.board-wrapper {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto 1rem;
+}
+
+.board-wrapper > div {
+  width: 100% !important;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.move-list {
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+  color: var(--text, inherit);
+}
+
+.move-list-label {
+  font-weight: 500;
+}
+
+.move-list-progress {
+  opacity: 0.85;
+}
+
+.move-controls {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.move-controls button {
+  padding: 0.5rem 1rem;
+}
+
+.move-controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  .sidebar {
+    grid-column: 1;
+    border-right: none;
+    border-bottom: 1px solid var(--border, #333);
+  }
+
+  .main {
+    grid-column: 1;
+  }
+}

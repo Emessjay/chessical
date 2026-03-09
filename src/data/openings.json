@@ -1,0 +1,32 @@
+[
+  {
+    "id": "italian",
+    "name": "Italian Game",
+    "eco": "C50",
+    "moves": ["e4", "e5", "Nf3", "Nc6", "Bc4"]
+  },
+  {
+    "id": "ruy-lopez",
+    "name": "Ruy Lopez",
+    "eco": "C60",
+    "moves": ["e4", "e5", "Nf3", "Nc6", "Bb5", "a6", "Ba4", "Nf6", "O-O"]
+  },
+  {
+    "id": "sicilian",
+    "name": "Sicilian Defense",
+    "eco": "B20",
+    "moves": ["e4", "c5", "Nf3", "d6", "d4", "cxd4", "Nxd4", "Nf6", "Nc3", "a6"]
+  },
+  {
+    "id": "french",
+    "name": "French Defense",
+    "eco": "C00",
+    "moves": ["e4", "e6", "d4", "d5", "Nd2", "Nf6", "e5", "Nfd7", "Bd3", "c5", "c3", "Nc6"]
+  },
+  {
+    "id": "caro-kann",
+    "name": "Caro-Kann Defense",
+    "eco": "B12",
+    "moves": ["e4", "c6", "d4", "d5", "Nc3", "dxe4", "Nxe4", "Bf5", "Ng3", "Bg6"]
+  }
+]
