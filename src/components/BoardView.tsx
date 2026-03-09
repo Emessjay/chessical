@@ -13,15 +13,25 @@ const OPPONENT_MOVE_DELAY_MS = 700;
 export type ViewMode = "view" | "practice";
 export type PracticeSide = "white" | "black";
 
+/** When set, parent renders move list and MoveControls (e.g. in a sidebar). */
+export interface BoardViewControlledProps {
+  currentIndex: number;
+  onIndexChange: (index: number) => void;
+  isPlaying: boolean;
+  onPlayPause: () => void;
+}
+
 interface BoardViewProps {
   moves: string[];
   openingName?: string;
   mode?: ViewMode;
   practiceSide?: PracticeSide;
   showMoveList?: boolean;
+  /** When provided, board is controlled and move list/controls are not rendered here. */
+  controlled?: BoardViewControlledProps;
 }
 
-function formatMoveList(moves: string[]): string {
+export function formatMoveList(moves: string[]): string {
   if (moves.length === 0) return "";
   let text = "";
   let moveNumber = 1;
@@ -48,10 +58,16 @@ export function BoardView({
   mode = "view",
   practiceSide = "white",
   showMoveList = false,
+  controlled,
 }: BoardViewProps) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [internalIndex, setInternalIndex] = useState(0);
+  const [internalPlaying, setInternalPlaying] = useState(false);
+  const currentIndex = controlled?.currentIndex ?? internalIndex;
+  const setCurrentIndex = controlled?.onIndexChange ?? setInternalIndex;
+  const isPlaying = controlled?.isPlaying ?? internalPlaying;
+  const setIsPlaying = controlled ? () => { /* parent owns state */ } : setInternalPlaying;
   const [practiceError, setPracticeError] = useState<string | null>(null);
+  const renderControlsHere = !controlled;
   const opponentTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoPlayOpponentRef = useRef(false);
   const maxIndex = moves.length;
@@ -143,7 +159,16 @@ export function BoardView({
       sourceSquare: string;
       targetSquare: string | null;
     }) => {
-      if (!isPractice || !isPlayerTurn || targetSquare === null) return false;
+      if (!isPractice || !isPlayerTurn) return false;
+      if (targetSquare === null) return false;
+
+      // If the piece is dropped back on its original square, treat it as a
+      // cancelled drag so the board can restore the piece visuals.
+      if (targetSquare === sourceSquare) {
+        setPracticeError(null);
+        return true;
+      }
+
       setPracticeError(null);
       const san = tryMoveFromSquares(fen, sourceSquare, targetSquare);
       if (san === null) {
@@ -184,11 +209,6 @@ export function BoardView({
         {openingName && (
           <h2 className="board-view-title">{openingName}</h2>
         )}
-        {practiceError && (
-          <p className="board-error" role="alert">
-            {practiceError}
-          </p>
-        )}
         <div className="board-wrapper">
           <Chessboard
             options={{
@@ -199,17 +219,26 @@ export function BoardView({
             }}
           />
         </div>
-        <div className="move-list">
-          <span className="move-list-label">Moves: </span>
-          <span className="move-list-text">—</span>
-        </div>
-        <MoveControls
-          currentIndex={0}
-          maxIndex={0}
-          onPrevious={onPrevious}
-          onNext={onNext}
-          onPlayPause={showPlayButton ? onPlayPause : undefined}
-        />
+        {practiceError && (
+          <p className="board-error" role="alert">
+            {practiceError}
+          </p>
+        )}
+        {renderControlsHere && (
+          <>
+            <div className="move-list">
+              <span className="move-list-label">Moves: </span>
+              <span className="move-list-text">—</span>
+            </div>
+            <MoveControls
+              currentIndex={0}
+              maxIndex={0}
+              onPrevious={onPrevious}
+              onNext={onNext}
+              onPlayPause={showPlayButton ? onPlayPause : undefined}
+            />
+          </>
+        )}
       </div>
     );
   }
@@ -222,11 +251,6 @@ export function BoardView({
       {positionResult.error && (
         <p className="board-error" role="alert">
           {positionResult.error}
-        </p>
-      )}
-      {practiceError && (
-        <p className="board-error" role="alert">
-          {practiceError}
         </p>
       )}
       {isPractice && currentIndex >= maxIndex && maxIndex > 0 && (
@@ -244,12 +268,17 @@ export function BoardView({
             boardOrientation,
             onPieceDrop,
             canDragPiece,
-            draggingPieceStyle: { transform: "none" },
+            draggingPieceStyle: { transform: "scale(1)" },
             dropSquareStyle: { boxShadow: "none" },
           }}
         />
       </div>
-      {showMoveList && (
+      {practiceError && (
+        <p className="board-error" role="alert">
+          {practiceError}
+        </p>
+      )}
+      {renderControlsHere && showMoveList && (
         <div className="move-list" aria-live="polite">
           <span className="move-list-label">Moves: </span>
           <span className="move-list-text">{moveListFormatted || "—"}</span>
@@ -261,14 +290,16 @@ export function BoardView({
           )}
         </div>
       )}
-      <MoveControls
-        currentIndex={currentIndex}
-        maxIndex={maxIndex}
-        onPrevious={onPrevious}
-        onNext={onNext}
-        isPlaying={isPlaying}
-        onPlayPause={showPlayButton ? onPlayPause : undefined}
-      />
+      {renderControlsHere && (
+        <MoveControls
+          currentIndex={currentIndex}
+          maxIndex={maxIndex}
+          onPrevious={onPrevious}
+          onNext={onNext}
+          isPlaying={isPlaying}
+          onPlayPause={showPlayButton ? onPlayPause : undefined}
+        />
+      )}
     </div>
   );
 }

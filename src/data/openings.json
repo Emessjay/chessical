@@ -43,6 +43,61 @@
     "moves": ["e4", "c6", "d4", "d5", "Nc3", "dxe4", "Nxe4", "Bf5", "Ng3", "Bg6"]
   },
   {
+    "id": "queens-pawn",
+    "name": "Queen's Pawn Game",
+    "eco": "D02",
+    "moves": ["d4", "d5", "Nf3", "Nf6", "Bf4", "c5", "e3", "Nc6", "c3"]
+  },
+  {
+    "id": "london",
+    "name": "London System",
+    "eco": "D02",
+    "moves": ["d4", "d5", "Bf4", "Nf6", "e3", "e6", "c4", "c6", "Nc3", "Bd6", "Bg3"]
+  },
+  {
+    "id": "slav",
+    "name": "Slav Defense",
+    "eco": "D11",
+    "lines": [
+      {
+        "id": "main",
+        "name": "Main line",
+        "eco": "D17",
+        "moves": ["d4", "d5", "c4", "c6", "Nf3", "Nf6", "Nc3", "dxc4", "a4", "Bf5", "e3", "e6", "Bxc4", "Bb4"]
+      },
+      {
+        "id": "exchange",
+        "name": "Exchange Variation",
+        "eco": "D13",
+        "moves": ["d4", "d5", "c4", "c6", "cxd5", "cxd5", "Nc3", "Nf6", "Bf4", "Nc6", "e3", "Bf5"]
+      }
+    ]
+  },
+  {
+    "id": "catalan",
+    "name": "Catalan Opening",
+    "eco": "E00",
+    "moves": ["d4", "d5", "c4", "e6", "Nf3", "Nf6", "g3", "Be7", "Bg2", "O-O", "O-O", "c6", "Nc3", "Nbd7"]
+  },
+  {
+    "id": "colle",
+    "name": "Colle System",
+    "eco": "D05",
+    "moves": ["d4", "d5", "Nf3", "Nf6", "e3", "e6", "Bd3", "c5", "c3", "Nc6", "Nbd2", "Bd6", "O-O", "O-O"]
+  },
+  {
+    "id": "chigorin",
+    "name": "Chigorin Defense",
+    "eco": "D07",
+    "moves": ["d4", "d5", "c4", "Nc6", "Nc3", "Nf6", "Nf3", "Bg4", "cxd5", "Nxd5", "e3", "e6", "Be2", "Bb4"]
+  },
+  {
+    "id": "albin",
+    "name": "Albin Countergambit",
+    "eco": "D08",
+    "moves": ["d4", "d5", "c4", "e5", "dxe5", "d4", "Nf3", "Nc6", "Nbd2", "Bg4", "a3", "Qd7", "h3", "Bxf3"]
+  },
+  {
     "id": "queens-gambit",
     "name": "Queen's Gambit",
     "eco": "D06",
