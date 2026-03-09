@@ -348,6 +348,56 @@
   border-color: var(--accent, #646cff);
 }
 
+/* Line selector (tabs above board) */
+.line-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+}
+
+.line-tab {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border, #333);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text, inherit);
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.line-tab:hover {
+  background: var(--hover-bg, rgba(255, 255, 255, 0.08));
+}
+
+.line-tab.active {
+  background: var(--accent-bg, rgba(100, 108, 255, 0.25));
+  border-color: var(--accent, #646cff);
+}
+
+.line-tab-eco {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+.show-move-list {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: var(--text, inherit);
+  cursor: pointer;
+}
+
+.show-move-list input {
+  cursor: pointer;
+}
+
 /* BoardView */
 .board-view {
   max-width: 560px;

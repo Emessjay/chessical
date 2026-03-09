@@ -18,6 +18,7 @@ interface BoardViewProps {
   openingName?: string;
   mode?: ViewMode;
   practiceSide?: PracticeSide;
+  showMoveList?: boolean;
 }
 
 function formatMoveList(moves: string[]): string {
@@ -46,6 +47,7 @@ export function BoardView({
   openingName,
   mode = "view",
   practiceSide = "white",
+  showMoveList = false,
 }: BoardViewProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -243,19 +245,22 @@ export function BoardView({
             onPieceDrop,
             canDragPiece,
             draggingPieceStyle: { transform: "none" },
+            dropSquareStyle: { boxShadow: "none" },
           }}
         />
       </div>
-      <div className="move-list" aria-live="polite">
-        <span className="move-list-label">Moves: </span>
-        <span className="move-list-text">{moveListFormatted || "—"}</span>
-        {moveListFormatted && (
-          <span className="move-list-progress">
-            {" "}
-            ({currentIndex} / {maxIndex})
-          </span>
-        )}
-      </div>
+      {showMoveList && (
+        <div className="move-list" aria-live="polite">
+          <span className="move-list-label">Moves: </span>
+          <span className="move-list-text">{moveListFormatted || "—"}</span>
+          {moveListFormatted && (
+            <span className="move-list-progress">
+              {" "}
+              ({currentIndex} / {maxIndex})
+            </span>
+          )}
+        </div>
+      )}
       <MoveControls
         currentIndex={currentIndex}
         maxIndex={maxIndex}

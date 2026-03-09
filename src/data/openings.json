@@ -15,7 +15,20 @@
     "id": "sicilian",
     "name": "Sicilian Defense",
     "eco": "B20",
-    "moves": ["e4", "c5", "Nf3", "d6", "d4", "cxd4", "Nxd4", "Nf6", "Nc3", "a6"]
+    "lines": [
+      {
+        "id": "open",
+        "name": "Open Sicilian",
+        "eco": "B90",
+        "moves": ["e4", "c5", "Nf3", "d6", "d4", "cxd4", "Nxd4", "Nf6", "Nc3", "a6"]
+      },
+      {
+        "id": "closed",
+        "name": "Closed Sicilian",
+        "eco": "B23",
+        "moves": ["e4", "c5", "Nc3", "Nc6", "g3", "g6", "Bg2", "Bg7", "Nge2", "d6", "d3"]
+      }
+    ]
   },
   {
     "id": "french",
@@ -28,5 +41,42 @@
     "name": "Caro-Kann Defense",
     "eco": "B12",
     "moves": ["e4", "c6", "d4", "d5", "Nc3", "dxe4", "Nxe4", "Bf5", "Ng3", "Bg6"]
+  },
+  {
+    "id": "queens-gambit",
+    "name": "Queen's Gambit",
+    "eco": "D06",
+    "lines": [
+      {
+        "id": "declined",
+        "name": "Queen's Gambit Declined",
+        "eco": "D35",
+        "moves": ["d4", "d5", "c4", "e6", "Nc3", "Nf6", "Bg5", "Be7", "e3", "O-O"]
+      },
+      {
+        "id": "accepted",
+        "name": "Queen's Gambit Accepted",
+        "eco": "D20",
+        "moves": ["d4", "d5", "c4", "dxc4", "e4", "e5", "Nf3", "exd4", "Bxc4", "Nc6"]
+      }
+    ]
+  },
+  {
+    "id": "english",
+    "name": "English Opening",
+    "eco": "A20",
+    "moves": ["c4", "e5", "Nc3", "Nf6", "Nf3", "Nc6", "e3", "Bb4"]
+  },
+  {
+    "id": "four-knights",
+    "name": "Four Knights Game",
+    "eco": "C47",
+    "moves": ["e4", "e5", "Nf3", "Nc6", "Nc3", "Nf6", "Bb5", "Nd4", "Bc4", "Bc5"]
+  },
+  {
+    "id": "fried-liver",
+    "name": "Fried Liver Attack",
+    "eco": "C57",
+    "moves": ["e4", "e5", "Nf3", "Nc6", "Bc4", "Nf6", "Ng5", "d5", "exd5", "Nxd5", "Nxf7"]
   }
 ]
