@@ -60,6 +60,10 @@
   background: var(--hover-bg, rgba(255, 255, 255, 0.08));
 }
 
+.app-nav-link.active {
+  background: var(--accent-bg, rgba(100, 108, 255, 0.25));
+}
+
 /* Login page */
 .login-page {
   display: flex;
@@ -428,6 +432,35 @@
   border-color: var(--accent, #646cff);
 }
 
+/* Openings tabs (Library / Learn / Practice) */
+.openings-tabs {
+  display: inline-flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--border, #333);
+}
+
+.openings-tab {
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: var(--text, inherit);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.openings-tab:hover {
+  background: var(--hover-bg, rgba(255, 255, 255, 0.12));
+}
+
+.openings-tab.active {
+  background: var(--accent-bg, rgba(100, 108, 255, 0.25));
+  color: var(--text, inherit);
+}
+
 /* Line selector (tabs above board) */
 .line-selector {
   display: flex;
@@ -476,6 +509,62 @@
 
 .show-move-list input {
   cursor: pointer;
+}
+
+/* Practice sidebar */
+.practice-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.practice-description {
+  margin: 0 0 0.25rem 0;
+  font-size: 0.9rem;
+  color: var(--muted, #888);
+}
+
+.practice-sidebar button {
+  align-self: flex-start;
+  padding: 0.45rem 0.9rem;
+  border-radius: 6px;
+  border: 1px solid var(--border, #333);
+  background: var(--accent, #646cff);
+  color: #fff;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.practice-sidebar button:hover {
+  filter: brightness(1.05);
+}
+
+.practice-opening-meta {
+  font-size: 0.85rem;
+  color: var(--text, inherit);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.practice-opening-name {
+  font-weight: 600;
+}
+
+.practice-opening-eco {
+  font-size: 0.8rem;
+  color: var(--muted, #888);
+}
+
+.practice-opening-side {
+  margin-top: 0.25rem;
+}
+
+.learn-description {
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+  color: var(--muted, #888);
 }
 
 /* BoardView */

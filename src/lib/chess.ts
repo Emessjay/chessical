@@ -25,8 +25,15 @@ export function getPositionAfterMoves(
   const chess = new Chess();
   const end = Math.min(upToIndex, moves.length);
   for (let i = 0; i < end; i++) {
-    const result = chess.move(moves[i], { strict: true });
-    if (!result) {
+    try {
+      const result = chess.move(moves[i], { strict: true });
+      if (!result) {
+        return {
+          fen: chess.fen(),
+          error: `Invalid move "${moves[i]}" at move ${i + 1} in this opening.`,
+        };
+      }
+    } catch {
       return {
         fen: chess.fen(),
         error: `Invalid move "${moves[i]}" at move ${i + 1} in this opening.`,
@@ -47,12 +54,16 @@ export function tryMoveFromSquares(
   targetSquare: string
 ): string | null {
   const chess = new Chess(fen);
-  const result = chess.move({
-    from: sourceSquare,
-    to: targetSquare,
-    promotion: "q",
-  });
-  return result ? result.san : null;
+  try {
+    const result = chess.move({
+      from: sourceSquare,
+      to: targetSquare,
+      promotion: "q",
+    });
+    return result ? result.san : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -67,9 +78,13 @@ export function getLastMove(
   const chess = new Chess();
   const moveIndex = Math.min(currentIndex, moves.length) - 1;
   for (let i = 0; i <= moveIndex; i++) {
-    const result = chess.move(moves[i], { strict: true });
-    if (!result) return null;
-    if (i === moveIndex) return { from: result.from, to: result.to };
+    try {
+      const result = chess.move(moves[i], { strict: true });
+      if (!result) return null;
+      if (i === moveIndex) return { from: result.from, to: result.to };
+    } catch {
+      return null;
+    }
   }
   return null;
 }

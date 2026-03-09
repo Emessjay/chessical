@@ -20,10 +20,13 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<LibraryLayout />} />
+          <Route index element={<Navigate to="/library" replace />} />
+          <Route path="library" element={<LibraryLayout />} />
+          <Route path="learn" element={<LibraryLayout />} />
+          <Route path="practice" element={<LibraryLayout />} />
           <Route path="account" element={<AccountPage />} />
         </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/library" replace />} />
       </Routes>
     </AuthProvider>
   );
