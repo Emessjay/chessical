@@ -7,22 +7,10 @@ export function AppLayout() {
       <header className="app-header">
         <nav className="app-nav">
           <NavLink
-            to="/library"
+            to="/openings"
             className={({ isActive }) => `app-nav-link ${isActive ? "active" : ""}`}
           >
-            Library
-          </NavLink>
-          <NavLink
-            to="/learn"
-            className={({ isActive }) => `app-nav-link ${isActive ? "active" : ""}`}
-          >
-            Learn
-          </NavLink>
-          <NavLink
-            to="/practice"
-            className={({ isActive }) => `app-nav-link ${isActive ? "active" : ""}`}
-          >
-            Practice
+            Openings
           </NavLink>
           <NavLink
             to="/settings"

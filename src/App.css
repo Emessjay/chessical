@@ -785,6 +785,12 @@
   --board-size: min(75vmin, 60vh);
 }
 
+/* Match learn tab board scale in practice + library tabs */
+.practice-main-wrap .board-wrapper,
+.library-main-wrap .board-wrapper {
+  --board-size: min(75vmin, 60vh);
+}
+
 /* BoardView */
 .board-view {
   flex: 1;
@@ -825,6 +831,13 @@
   flex-direction: column;
   align-items: center;
   gap: 0.75rem;
+}
+
+.library-main-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 0;
 }
 
 .practice-line-complete {

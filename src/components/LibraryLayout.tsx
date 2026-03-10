@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
-import { useLocation } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import openingsData from "../data/openings.json";
 import type { Opening, LearnUnitProgress, PracticeSide } from "../types";
 import { OpeningsMenu } from "./OpeningsMenu";
@@ -564,22 +564,51 @@ export function LibraryLayout() {
         )}
       </aside>
       <main className="main">
+        <div className="openings-tabs" role="tablist" aria-label="Openings tabs">
+          <NavLink
+            to="/openings/library"
+            className={({ isActive }) => `openings-tab ${isActive ? "active" : ""}`}
+            role="tab"
+            aria-selected={activeTab === "library"}
+          >
+            Library
+          </NavLink>
+          <NavLink
+            to="/openings/learn"
+            className={({ isActive }) => `openings-tab ${isActive ? "active" : ""}`}
+            role="tab"
+            aria-selected={activeTab === "learn"}
+          >
+            Learn
+          </NavLink>
+          <NavLink
+            to="/openings/practice"
+            className={({ isActive }) => `openings-tab ${isActive ? "active" : ""}`}
+            role="tab"
+            aria-selected={activeTab === "practice"}
+          >
+            Practice
+          </NavLink>
+        </div>
+
         {activeTab === "library" && (
           <>
             {librarySelectedOpening ? (
-              <BoardView
-                moves={libraryMoves}
-                openingName={libraryDisplayName}
-                mode={mode}
-                practiceSide={libraryPracticeSide}
-                showMoveList={false}
-                controlled={{
-                  currentIndex,
-                  onIndexChange: setCurrentIndex,
-                  isPlaying,
-                  onPlayPause,
-                }}
-              />
+              <div className="library-main-wrap">
+                <BoardView
+                  moves={libraryMoves}
+                  openingName={libraryDisplayName}
+                  mode={mode}
+                  practiceSide={libraryPracticeSide}
+                  showMoveList={false}
+                  controlled={{
+                    currentIndex,
+                    onIndexChange: setCurrentIndex,
+                    isPlaying,
+                    onPlayPause,
+                  }}
+                />
+              </div>
             ) : (
               <div className="placeholder">
                 <p>

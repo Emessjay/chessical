@@ -21,14 +21,21 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Navigate to="/library" replace />} />
-          <Route path="library" element={<LibraryLayout />} />
-          <Route path="learn" element={<LibraryLayout />} />
-          <Route path="practice" element={<LibraryLayout />} />
+          <Route index element={<Navigate to="/openings" replace />} />
+
+          {/* Openings hub (subtabs: library / learn / practice) */}
+          <Route path="openings" element={<Navigate to="/openings/library" replace />} />
+          <Route path="openings/*" element={<LibraryLayout />} />
+
+          {/* Back-compat redirects */}
+          <Route path="library" element={<Navigate to="/openings/library" replace />} />
+          <Route path="learn" element={<Navigate to="/openings/learn" replace />} />
+          <Route path="practice" element={<Navigate to="/openings/practice" replace />} />
+
           <Route path="settings" element={<SettingsPage />} />
           <Route path="account" element={<AccountPage />} />
         </Route>
-        <Route path="*" element={<Navigate to="/library" replace />} />
+        <Route path="*" element={<Navigate to="/openings" replace />} />
       </Routes>
     </AuthProvider>
   );
