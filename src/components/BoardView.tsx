@@ -45,6 +45,8 @@ interface BoardViewProps {
   onValidMove?: (san: string) => void;
   /** Called when the user clicks any square (e.g. to reset after line complete in practice). */
   onBoardClick?: () => void;
+  /** In analysis mode: called whenever the user plays any legal move on the board. */
+  onAnalysisMove?: (san: string) => void;
 }
 
 function isWhitePiece(pieceType: string): boolean {
@@ -105,6 +107,7 @@ export function BoardView({
   const maxIndex = moves.length;
 
   const isPractice = mode === "practice";
+  const isAnalysis = mode === "analysis";
   const isPlayerTurn =
     isPractice &&
     ((practiceSide === "white" && currentIndex % 2 === 0) ||
@@ -201,6 +204,20 @@ export function BoardView({
       sourceSquare: string;
       targetSquare: string | null;
     }) => {
+      // Free analysis mode: accept any legal move and delegate to parent.
+      if (mode === "analysis") {
+        if (!targetSquare) return false;
+        if (targetSquare === sourceSquare) return true;
+        const san = tryMoveFromSquares(fen, sourceSquare, targetSquare);
+        if (!san) {
+          return false;
+        }
+        if (onAnalysisMove) {
+          onAnalysisMove(san);
+        }
+        return true;
+      }
+
       if (!isPractice || !isPlayerTurn) return false;
       if (targetSquare === null) return false;
 
@@ -245,6 +262,7 @@ export function BoardView({
       return true;
     },
     [
+      mode,
       isPractice,
       isPlayerTurn,
       fen,
@@ -256,17 +274,19 @@ export function BoardView({
       isOrganicPractice,
       allowedMoves,
       onValidMove,
+      onAnalysisMove,
     ]
   );
 
   const canDragPiece = useCallback(
     ({ piece }: { piece: { pieceType: string } }) => {
+      if (mode === "analysis") return true;
       if (!isPractice || !isPlayerTurn) return false;
       return practiceSide === "white"
         ? isWhitePiece(piece.pieceType)
         : isBlackPiece(piece.pieceType);
     },
-    [isPractice, isPlayerTurn, practiceSide]
+    [mode, isPractice, isPlayerTurn, practiceSide]
   );
 
   const moveListFormatted = formatMoveList(moves);
@@ -286,11 +306,12 @@ export function BoardView({
   }, [showHintArrow, isPlayerTurn, currentIndex, maxIndex, moves]);
 
   const boardOrientation = isPractice && practiceSide === "black" ? "black" : "white";
-  const allowDragging = isPractice && isPlayerTurn;
+  const allowDragging = (isPractice && isPlayerTurn) || mode === "analysis";
   const showPlayButton = !isPractice;
 
   if (moves.length === 0) {
-    const emptyAllowDragging = isPractice && isPlayerTurn;
+    const emptyAllowDragging =
+      (isPractice && isPlayerTurn) || mode === "analysis";
     return (
       <div className="board-view empty">
         {openingName && (

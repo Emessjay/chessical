@@ -3,23 +3,9 @@ import { BoardView } from "../components/BoardView";
 import { MoveControls } from "../components/MoveControls";
 import { formatMoveList } from "../components/boardViewShared";
 import { getPositionAfterMoves } from "../lib/chess";
-import { StockfishClient, type StockfishInfo } from "../lib/stockfishClient";
-
-function parseSanMoves(raw: string): string[] {
-  const cleaned = raw
-    .replace(/\{[^}]*\}/g, " ") // strip {...} comments
-    .replace(/\([^)]*\)/g, " ") // strip (...) variations (simple)
-    .replace(/\d+\.(\.\.)?/g, " ") // strip move numbers like "1." / "1..."
-    .replace(/\s+/g, " ")
-    .trim();
-
-  if (!cleaned) return [];
-  return cleaned
-    .split(" ")
-    .map((t) => t.trim())
-    .filter((t) => t.length > 0)
-    .filter((t) => !["1-0", "0-1", "1/2-1/2", "*"].includes(t));
-}
+import { parseGameInput } from "../lib/gameInput";
+import { uciPvToSan } from "../lib/gameReport";
+import { StockfishClient, type StockfishInfo, type StockfishPvLine } from "../lib/stockfishClient";
 
 function formatScore(info: StockfishInfo | null): string {
   if (!info?.score) return "—";
@@ -33,7 +19,8 @@ export function EvaluatePage() {
   const [movesText, setMovesText] = useState(
     "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6"
   );
-  const moves = useMemo(() => parseSanMoves(movesText), [movesText]);
+  const parsed = useMemo(() => parseGameInput(movesText), [movesText]);
+  const moves = parsed.movesSan;
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -45,6 +32,7 @@ export function EvaluatePage() {
   const [lastInfo, setLastInfo] = useState<StockfishInfo | null>(null);
   const [bestMoveUci, setBestMoveUci] = useState<string | null>(null);
   const [engineStatus, setEngineStatus] = useState<string>("Idle");
+  const [topLines, setTopLines] = useState<StockfishPvLine[] | null>(null);
 
   const maxIndex = moves.length;
   const safeIndex = Math.min(currentIndex, maxIndex);
@@ -67,20 +55,24 @@ export function EvaluatePage() {
       setEngineStatus("Analyzing…");
       setLastInfo(null);
       setBestMoveUci(null);
+      setTopLines(null);
 
       try {
-        const analysis = await client.analyzePosition(fen, { depth });
+        const analysis = await client.analyzePositionMultiPV(fen, { depth, multiPv: 5 });
         if (cancelled) {
           analysis.stop();
           return;
         }
         analysisStopRef.current = analysis.stop;
         const offInfo = analysis.onInfo((info) => {
-          setLastInfo(info);
+          if (!info.multipv || info.multipv === 1) {
+            setLastInfo(info);
+          }
         });
-        const { bestMove } = await analysis.done;
+        const { bestMove, lastLines } = await analysis.done;
         offInfo();
         if (cancelled) return;
+        setTopLines(lastLines);
         setBestMoveUci(bestMove?.bestmove ?? null);
         setEngineStatus("Idle");
       } catch (e) {
@@ -110,6 +102,21 @@ export function EvaluatePage() {
 
   const moveListFormatted = useMemo(() => formatMoveList(moves), [moves]);
 
+  const topMovesDisplay = useMemo(() => {
+    if (!topLines || !topLines.length) return [];
+    return topLines
+      .filter((l) => l.pv && l.pv.length && l.score)
+      .map((l) => {
+        const sanMoves = uciPvToSan(fen, [l.pv[0]]);
+        const sanFirst = sanMoves[0] ?? l.pv[0];
+        return {
+          multipv: l.multipv,
+          moveSan: sanFirst,
+          score: l.score ?? null,
+        };
+      });
+  }, [topLines, fen]);
+
   return (
     <div className="app evaluate-app">
       <aside className="sidebar">
@@ -130,7 +137,7 @@ export function EvaluatePage() {
               setLastInfo(null);
               setBestMoveUci(null);
               setEngineStatus("Idle");
-              const nextMovesLen = parseSanMoves(nextText).length;
+              const nextMovesLen = parseGameInput(nextText).movesSan.length;
               setCurrentIndex((idx) => Math.min(idx, nextMovesLen));
             }}
             rows={10}
@@ -219,19 +226,31 @@ export function EvaluatePage() {
               <span className="evaluate-v">{lastInfo?.depth ?? "—"}</span>
             </div>
             <div className="evaluate-row">
-              <span className="evaluate-k">Score</span>
-              <span className="evaluate-v">{formatScore(lastInfo)}</span>
-            </div>
-            <div className="evaluate-row">
-              <span className="evaluate-k">Best</span>
-              <span className="evaluate-v">{bestMoveUci ?? "—"}</span>
-            </div>
-            <div className="evaluate-row evaluate-row-pv">
-              <span className="evaluate-k">PV</span>
+              <span className="evaluate-k">Evaluation</span>
               <span className="evaluate-v">
-                {lastInfo?.pv?.length ? lastInfo.pv.join(" ") : "—"}
+                {topMovesDisplay.length
+                  ? formatScore({ score: topMovesDisplay[0].score } as StockfishInfo)
+                  : "—"}
               </span>
             </div>
+          </div>
+
+          <div className="evaluate-top-moves">
+            <div className="mode-label">Top moves</div>
+            {topMovesDisplay.length ? (
+              <ol className="evaluate-top-moves-list">
+                {topMovesDisplay.map((m) => (
+                  <li key={m.multipv} className="evaluate-top-moves-item">
+                    <span className="evaluate-top-move-san">{m.moveSan}</span>
+                    <span className="evaluate-top-move-score">
+                      {formatScore({ score: m.score } as StockfishInfo)}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <div className="evaluate-meta-muted">Engine moves will appear here.</div>
+            )}
           </div>
         </div>
       </aside>

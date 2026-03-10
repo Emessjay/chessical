@@ -1,4 +1,4 @@
-export type ViewMode = "view" | "practice";
+export type ViewMode = "view" | "practice" | "analysis";
 
 export function formatMoveList(moves: string[]): string {
   if (moves.length === 0) return "";

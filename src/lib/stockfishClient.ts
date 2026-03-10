@@ -21,6 +21,18 @@ export interface StockfishBestMove {
   ponder?: string;
 }
 
+export interface StockfishPvLine {
+  multipv: number;
+  depth?: number;
+  seldepth?: number;
+  nodes?: number;
+  nps?: number;
+  timeMs?: number;
+  score?: StockfishScore;
+  pv: string[];
+  raw?: string;
+}
+
 type EngineWorker = Worker;
 
 function parseUciInfo(line: string): StockfishInfo | null {
@@ -206,17 +218,42 @@ export class StockfishClient {
     done: Promise<{ bestMove: StockfishBestMove | null; lastInfo: StockfishInfo | null }>;
     stop: () => void;
   }> {
+    const analysis = await this.analyzePositionMultiPV(fen, { depth: opts.depth, multiPv: 1 });
+    return {
+      onInfo: (cb) => analysis.onInfo(cb),
+      done: analysis.done.then(({ bestMove, lastInfoByPv }) => ({
+        bestMove,
+        lastInfo: lastInfoByPv.get(1) ?? null,
+      })),
+      stop: analysis.stop,
+    };
+  }
+
+  async analyzePositionMultiPV(
+    fen: string,
+    opts: { depth?: number; multiPv?: number } = {}
+  ): Promise<{
+    onInfo: (cb: (info: StockfishInfo) => void) => () => void;
+    done: Promise<{
+      bestMove: StockfishBestMove | null;
+      lastInfoByPv: Map<number, StockfishInfo>;
+      lastLines: StockfishPvLine[];
+    }>;
+    stop: () => void;
+  }> {
     await this.init();
 
     const depth = opts.depth ?? 14;
-    let lastInfo: StockfishInfo | null = null;
+    const multiPv = Math.max(1, Math.floor(opts.multiPv ?? 1));
+    const lastInfoByPv = new Map<number, StockfishInfo>();
     let bestMove: StockfishBestMove | null = null;
     const infoListeners = new Set<(info: StockfishInfo) => void>();
 
     const off = this.onLine((line) => {
       const info = parseUciInfo(line);
       if (info) {
-        lastInfo = info;
+        const pvIdx = info.multipv && Number.isFinite(info.multipv) ? info.multipv : 1;
+        lastInfoByPv.set(pvIdx, info);
         for (const cb of infoListeners) cb(info);
         return;
       }
@@ -229,18 +266,33 @@ export class StockfishClient {
     // Fresh analysis
     this.post("stop");
     this.post("ucinewgame");
+    this.post(`setoption name MultiPV value ${multiPv}`);
     this.post(`position fen ${fen}`);
     this.post(`go depth ${depth}`);
 
     const done = new Promise<{
       bestMove: StockfishBestMove | null;
-      lastInfo: StockfishInfo | null;
+      lastInfoByPv: Map<number, StockfishInfo>;
+      lastLines: StockfishPvLine[];
     }>((resolve) => {
       const offBest = this.onLine((line) => {
         if (line.startsWith("bestmove ")) {
           offBest();
           off();
-          resolve({ bestMove, lastInfo });
+          const lastLines: StockfishPvLine[] = Array.from(lastInfoByPv.entries())
+            .map(([multipv, info]) => ({
+              multipv,
+              depth: info.depth,
+              seldepth: info.seldepth,
+              nodes: info.nodes,
+              nps: info.nps,
+              timeMs: info.timeMs,
+              score: info.score,
+              pv: info.pv ?? [],
+              raw: info.raw,
+            }))
+            .sort((a, b) => a.multipv - b.multipv);
+          resolve({ bestMove, lastInfoByPv, lastLines });
         }
       });
     });

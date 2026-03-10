@@ -345,6 +345,203 @@
   cursor: not-allowed;
 }
 
+/* Trainer page */
+.trainer-page {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 1rem;
+  overflow: auto;
+}
+
+.trainer-card {
+  width: 100%;
+  max-width: 640px;
+  min-width: 0;
+  padding: 2rem;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+.trainer-title {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.5rem;
+  color: var(--text, inherit);
+}
+
+.trainer-section {
+  margin-bottom: 1.5rem;
+}
+
+.trainer-section:last-of-type {
+  margin-bottom: 0;
+}
+
+.trainer-section-title {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text, inherit);
+}
+
+.trainer-description {
+  margin: 0 0 1rem 0;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.trainer-username-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.trainer-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.trainer-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent-bg);
+}
+
+.trainer-button {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.trainer-button:hover:not(:disabled) {
+  background: var(--hover-bg);
+}
+
+.trainer-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.trainer-button-primary {
+  background: var(--accent-bg);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.trainer-button-primary:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--accent-bg) 80%, var(--accent));
+}
+
+.trainer-saved {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.trainer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.trainer-meta {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.trainer-status {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+}
+
+.trainer-error {
+  margin: 0;
+  color: var(--error, #c53030);
+}
+
+.trainer-summary-list {
+  margin: 0 0 0.5rem 0;
+  padding-left: 1.25rem;
+  list-style: disc;
+}
+
+.trainer-summary-item {
+  margin-bottom: 0.25rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.trainer-cause-label {
+  font-weight: 500;
+}
+
+.trainer-cause-count {
+  color: var(--text-muted);
+}
+
+.trainer-games-wrap {
+  overflow-x: auto;
+  overflow-y: visible;
+  max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.trainer-games-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.trainer-games-table th,
+.trainer-games-table td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.trainer-games-table th {
+  font-weight: 600;
+  background: color-mix(in oklab, var(--panel) 95%, black);
+}
+
+.trainer-games-table tr:last-child td {
+  border-bottom: none;
+}
+
+.trainer-cause-badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-size: 0.85rem;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .settings-meta {
   font-size: 0.85rem;
   color: var(--text-muted);
@@ -414,6 +611,25 @@
   font-size: 0.9rem;
   color: var(--muted, #888);
   line-height: 1.4;
+}
+
+.btn {
+  padding: 0.45rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.btn:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--input-bg) 80%, white);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .evaluate-label {
@@ -508,6 +724,99 @@
   color: var(--text, inherit);
   text-align: right;
   word-break: break-word;
+}
+
+/* Analysis page – moves box (top-right, fixed size, scrollable) */
+.analysis-moves-box {
+  flex-shrink: 0;
+  height: 320px;
+  min-height: 200px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.5rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.analysis-moves-box-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+  flex-shrink: 0;
+}
+
+.analysis-moves-row {
+  display: grid;
+  grid-template-columns: 3rem 1fr 1fr;
+  gap: 0.5rem;
+  padding: 0.2rem 0;
+  font-size: 0.9rem;
+  align-items: center;
+}
+
+.analysis-moves-num {
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.analysis-move-btn {
+  padding: 0.25rem 0.4rem;
+  text-align: left;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.analysis-move-btn:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--input-bg) 85%, white);
+}
+
+.analysis-move-btn:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+/* Annotation color-coding */
+.analysis-move-btn.annotation-blunder {
+  background: color-mix(in oklab, #c92a2a 25%, var(--input-bg));
+  border-color: color-mix(in oklab, #c92a2a 50%, var(--border));
+}
+
+.analysis-move-btn.annotation-mistake {
+  background: color-mix(in oklab, #d9480f 22%, var(--input-bg));
+  border-color: color-mix(in oklab, #d9480f 45%, var(--border));
+}
+
+.analysis-move-btn.annotation-dubious {
+  background: color-mix(in oklab, #e67700 18%, var(--input-bg));
+  border-color: color-mix(in oklab, #e67700 40%, var(--border));
+}
+
+.analysis-move-btn.annotation-none {
+  /* default, no extra class needed but available */
+}
+
+.analysis-move-btn.annotation-interesting {
+  background: color-mix(in oklab, #1971c2 20%, var(--input-bg));
+  border-color: color-mix(in oklab, #1971c2 45%, var(--border));
+}
+
+.analysis-move-btn.annotation-good {
+  background: color-mix(in oklab, #2f9e44 22%, var(--input-bg));
+  border-color: color-mix(in oklab, #2f9e44 45%, var(--border));
+}
+
+.analysis-move-btn.annotation-brilliant {
+  background: color-mix(in oklab, #2f9e44 35%, var(--input-bg));
+  border-color: color-mix(in oklab, #2f9e44 55%, var(--border));
+  font-weight: 500;
 }
 
 /* OpeningsMenu */

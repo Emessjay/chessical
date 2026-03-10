@@ -1,8 +1,9 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AppLayout } from "./components/AppLayout";
 import { LibraryLayout } from "./components/LibraryLayout";
-import { EvaluatePage } from "./pages/EvaluatePage";
+import { AnalysisPage } from "./pages/AnalysisPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { TrainerPage } from "./pages/TrainerPage";
 import "./App.css";
 
 function App() {
@@ -20,7 +21,10 @@ function App() {
         <Route path="learn" element={<Navigate to="/openings/learn" replace />} />
         <Route path="practice" element={<Navigate to="/openings/practice" replace />} />
 
-        <Route path="evaluate" element={<EvaluatePage />} />
+        <Route path="analysis" element={<AnalysisPage />} />
+        <Route path="evaluate" element={<Navigate to="/analysis" replace />} />
+
+        <Route path="trainer" element={<TrainerPage />} />
 
         <Route path="settings" element={<SettingsPage />} />
       </Route>

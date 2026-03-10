@@ -13,10 +13,16 @@ export function AppLayout() {
             Openings
           </NavLink>
           <NavLink
-            to="/evaluate"
+            to="/analysis"
             className={({ isActive }) => `app-nav-link ${isActive ? "active" : ""}`}
           >
-            Evaluate
+            Analysis
+          </NavLink>
+          <NavLink
+            to="/trainer"
+            className={({ isActive }) => `app-nav-link ${isActive ? "active" : ""}`}
+          >
+            Trainer
           </NavLink>
           <NavLink
             to="/settings"
