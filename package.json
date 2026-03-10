@@ -1,33 +1,32 @@
 {
   "name": "chessical",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "server": "node server/index.js",
-    "dev:all": "concurrently \"npm run server\" \"npm run dev\""
+    "tauri:dev": "cross-env CI=true npx tauri dev",
+    "tauri:build": "cross-env CI=true npx tauri build"
   },
   "dependencies": {
-    "bcryptjs": "^3.0.3",
     "chess.js": "^1.4.0",
-    "cookie-parser": "^1.4.7",
-    "express": "^5.2.1",
     "react": "^19.2.0",
     "react-chessboard": "^5.10.0",
     "react-dom": "^19.2.0",
-    "react-router-dom": "^7.13.1"
+    "react-router-dom": "^7.13.1",
+    "stockfish": "^18.0.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@tauri-apps/cli": "^2.10.1",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
-    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",

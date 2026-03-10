@@ -4,7 +4,8 @@ import openingsData from "../data/openings.json";
 import type { Opening, LearnUnitProgress, PracticeSide } from "../types";
 import { OpeningsMenu } from "./OpeningsMenu";
 import { MoveControls } from "./MoveControls";
-import { BoardView, formatMoveList, type ViewMode } from "./BoardView";
+import { BoardView } from "./BoardView";
+import { formatMoveList, type ViewMode } from "./boardViewShared";
 import {
   getOrderedCourseUnits,
   getCourseUnitId,
@@ -110,15 +111,6 @@ export function LibraryLayout() {
     [librarySelectedOpening]
   );
   const libraryDisplayName = librarySelectedOpening?.name ?? "";
-
-  useEffect(() => {
-    setCurrentIndex(0);
-    setIsPlaying(false);
-  }, [librarySelectedOpening?.id]);
-
-  useEffect(() => {
-    if (currentIndex >= libraryMoves.length) setIsPlaying(false);
-  }, [currentIndex, libraryMoves.length]);
 
   useEffect(() => {
     try {
@@ -332,25 +324,22 @@ export function LibraryLayout() {
 
   const practiceSide: PracticeSide = practiceColorFilter ?? "white";
 
-  const startPractice = useCallback(() => {
+  const startPracticeGame = useCallback(() => {
     if (practiceFilteredPool.length === 0) return;
-    setPracticeGameMoves([]);
-  }, [practiceFilteredPool]);
-
-  // When user is Black and game is at start, play first computer move (e.g. e4)
-  useEffect(() => {
-    if (
-      practiceGameMoves?.length === 0 &&
-      practiceSide === "black" &&
-      practiceFilteredPool.length > 0
-    ) {
+    if (practiceSide === "black") {
       const startFen = getPositionAfterMoves([], 0).fen;
-      const computerMove = pickComputerMove(startFen, practiceFilteredPool, practiceSide);
+      const computerMove = pickComputerMove(startFen, practiceFilteredPool);
       if (computerMove != null) {
         setPracticeGameMoves([computerMove]);
+        return;
       }
     }
-  }, [practiceGameMoves?.length, practiceSide, practiceFilteredPool]);
+    setPracticeGameMoves([]);
+  }, [practiceFilteredPool, practiceSide]);
+
+  const startPractice = useCallback(() => {
+    startPracticeGame();
+  }, [startPracticeGame]);
 
   const practiceFen = useMemo(() => {
     const moves = practiceGameMoves ?? [];
@@ -403,11 +392,7 @@ export function LibraryLayout() {
         practiceGameMoves,
         practiceGameMoves.length
       ).fen;
-      const computerMove = pickComputerMove(
-        fen,
-        practiceFilteredPool,
-        practiceSide
-      );
+      const computerMove = pickComputerMove(fen, practiceFilteredPool);
       if (computerMove == null) return;
       setPracticeGameMoves((prev) => {
         if (prev === null) return null;
@@ -430,9 +415,9 @@ export function LibraryLayout() {
   const handlePracticeBoardClick = useCallback(() => {
     if (practiceLineJustCompleted) {
       setPracticeLineJustCompleted(false);
-      setPracticeGameMoves([]);
+      startPracticeGame();
     }
-  }, [practiceLineJustCompleted]);
+  }, [practiceLineJustCompleted, startPracticeGame]);
 
   // Menu behaviour changes per tab
   const handleSelectFromMenu = useCallback(
@@ -440,6 +425,8 @@ export function LibraryLayout() {
       if (activeTab === "library") {
         const libItem = libraryItemsById.get(opening.id) ?? (opening as LibraryItem);
         setLibrarySelectedOpening(libItem);
+        setCurrentIndex(0);
+        setIsPlaying(false);
         setRecentOpeningIds((prev) => {
           const next = [libItem.id, ...prev.filter((id) => id !== libItem.id)].slice(
             0,
@@ -527,7 +514,7 @@ export function LibraryLayout() {
                     className="practice-new-game"
                     onClick={() => {
                       setPracticeLineJustCompleted(false);
-                      setPracticeGameMoves([]);
+                      startPracticeGame();
                     }}
                   >
                     New game

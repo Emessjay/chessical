@@ -1,5 +1,5 @@
 import { Chess } from "chess.js";
-import type { CourseUnit, Opening, PracticeSide } from "../types";
+import type { CourseUnit, Opening } from "../types";
 
 /**
  * Normalize FEN to a comparable form (piece placement, turn, castling, en passant).
@@ -122,8 +122,7 @@ export function isTerminalPosition(fen: string, units: CourseUnit[]): boolean {
  */
 export function pickComputerMove(
   fen: string,
-  units: CourseUnit[],
-  _practiceSide: PracticeSide
+  units: CourseUnit[]
 ): string | null {
   const side = sideToMoveFromFen(fen);
   const allowed = getAllowedMovesAtPosition(fen, units, side);

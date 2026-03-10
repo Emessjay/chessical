@@ -1,5 +1,5 @@
 import { Outlet } from "react-router-dom";
-import { Link, NavLink } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 
 export function AppLayout() {
   return (
@@ -13,14 +13,17 @@ export function AppLayout() {
             Openings
           </NavLink>
           <NavLink
+            to="/evaluate"
+            className={({ isActive }) => `app-nav-link ${isActive ? "active" : ""}`}
+          >
+            Evaluate
+          </NavLink>
+          <NavLink
             to="/settings"
             className={({ isActive }) => `app-nav-link ${isActive ? "active" : ""}`}
           >
             Settings
           </NavLink>
-          <Link to="/account" className="app-nav-link">
-            Account
-          </Link>
         </nav>
         <span className="app-title">Chessical</span>
       </header>

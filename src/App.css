@@ -11,6 +11,7 @@
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
+  background: transparent;
 }
 
 .app-content {
@@ -32,15 +33,52 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--sidebar-bg, #1e1e2e);
-  border-bottom: 1px solid var(--border, #333);
+  background: color-mix(in oklab, var(--panel) 92%, black);
+  border-bottom: 1px solid var(--border);
   padding: 0.5rem 1rem;
+  backdrop-filter: blur(10px);
 }
 
 .app-title {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text, inherit);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  font-size: 1.35rem;
+  font-weight: 850;
+  letter-spacing: 0.02em;
+
+  /* purple "logo" treatment */
+  color: transparent;
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--accent) 92%, white),
+    var(--accent-2) 55%,
+    color-mix(in oklab, var(--accent-2) 80%, white)
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+
+  text-shadow:
+    0 0 22px rgba(167, 139, 250, 0.18),
+    0 0 46px rgba(139, 92, 246, 0.12);
+}
+
+.app-title::before {
+  content: "♞";
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--accent);
+  opacity: 0.9;
+  filter: drop-shadow(0 0 10px rgba(167, 139, 250, 0.30));
+  transform: translateY(-1px);
+}
+
+@media (max-width: 520px) {
+  .app-title::before {
+    display: none;
+  }
 }
 
 .app-nav {
@@ -50,7 +88,7 @@
 }
 
 .app-nav-link {
-  color: var(--text, inherit);
+  color: var(--text);
   text-decoration: none;
   font-size: 0.95rem;
   padding: 0.25rem 0.5rem;
@@ -58,11 +96,12 @@
 }
 
 .app-nav-link:hover {
-  background: var(--hover-bg, rgba(255, 255, 255, 0.08));
+  background: var(--hover-bg);
 }
 
 .app-nav-link.active {
-  background: var(--accent-bg, rgba(100, 108, 255, 0.25));
+  background: var(--accent-bg);
+  box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.22) inset;
 }
 
 /* Login page */
@@ -78,9 +117,10 @@
   width: 100%;
   max-width: 360px;
   padding: 2rem;
-  background: var(--sidebar-bg, #1e1e2e);
-  border: 1px solid var(--border, #333);
+  background: var(--panel);
+  border: 1px solid var(--border);
   border-radius: 12px;
+  box-shadow: var(--shadow);
 }
 
 .login-title {
@@ -109,16 +149,17 @@
 
 .login-input {
   padding: 0.5rem 0.75rem;
-  border: 1px solid var(--border, #333);
+  border: 1px solid var(--border);
   border-radius: 6px;
-  background: var(--input-bg, #2a2a2e);
-  color: var(--text, inherit);
+  background: var(--input-bg);
+  color: var(--text);
   font-size: 1rem;
 }
 
 .login-input:focus {
-  outline: 2px solid var(--accent, #646cff);
+  outline: 2px solid var(--ring);
   outline-offset: 2px;
+  background: var(--input-bg-focus);
 }
 
 .login-error {
@@ -142,7 +183,7 @@
 }
 
 .login-button-primary {
-  background: var(--accent, #646cff);
+  background: linear-gradient(180deg, color-mix(in oklab, var(--accent-2) 92%, black), var(--accent-2));
   border: none;
   color: #fff;
 }
@@ -153,12 +194,12 @@
 
 .login-button-secondary {
   background: transparent;
-  border: 1px solid var(--border, #333);
-  color: var(--text, inherit);
+  border: 1px solid var(--border);
+  color: var(--text);
 }
 
 .login-button-secondary:hover {
-  background: var(--hover-bg, rgba(255, 255, 255, 0.08));
+  background: var(--hover-bg);
 }
 
 /* Account page (inside app-content, below top bar) */
@@ -174,21 +215,22 @@
   width: 100%;
   max-width: 360px;
   padding: 2rem;
-  background: var(--sidebar-bg, #1e1e2e);
-  border: 1px solid var(--border, #333);
+  background: var(--panel);
+  border: 1px solid var(--border);
   border-radius: 12px;
+  box-shadow: var(--shadow);
 }
 
 .account-title {
   margin: 0 0 0.5rem 0;
   font-size: 1.5rem;
-  color: var(--text, inherit);
+  color: var(--text);
 }
 
 .account-user {
   margin: 0 0 1.5rem 0;
   font-size: 1rem;
-  color: var(--text, inherit);
+  color: var(--text);
 }
 
 .account-nav {
@@ -198,13 +240,14 @@
 }
 
 .account-link {
-  color: var(--accent, #646cff);
+  color: var(--accent);
   text-decoration: none;
   font-size: 1rem;
 }
 
 .account-link:hover {
   text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, var(--accent) 70%, transparent);
 }
 
 .account-button {
@@ -218,12 +261,12 @@
 
 .account-button-logout {
   background: transparent;
-  border: 1px solid var(--border, #333);
-  color: var(--text, inherit);
+  border: 1px solid var(--border);
+  color: var(--text);
 }
 
 .account-button-logout:hover {
-  background: var(--hover-bg, rgba(255, 255, 255, 0.08));
+  background: var(--hover-bg);
 }
 
 /* Settings page */
@@ -239,9 +282,10 @@
   width: 100%;
   max-width: 480px;
   padding: 2rem;
-  background: var(--sidebar-bg, #1e1e2e);
-  border: 1px solid var(--border, #333);
+  background: var(--panel);
+  border: 1px solid var(--border);
   border-radius: 12px;
+  box-shadow: var(--shadow);
 }
 
 .settings-title {
@@ -268,7 +312,7 @@
 .settings-description {
   margin: 0 0 1rem 0;
   font-size: 0.95rem;
-  color: var(--text-muted, rgba(255, 255, 255, 0.75));
+  color: var(--text-muted);
   line-height: 1.45;
 }
 
@@ -288,12 +332,12 @@
 
 .settings-button-reset {
   background: transparent;
-  border: 1px solid var(--border, #333);
-  color: var(--text, inherit);
+  border: 1px solid var(--border);
+  color: var(--text);
 }
 
 .settings-button-reset:hover:not(:disabled) {
-  background: var(--hover-bg, rgba(255, 255, 255, 0.08));
+  background: var(--hover-bg);
 }
 
 .settings-button-reset:disabled {
@@ -303,19 +347,19 @@
 
 .settings-meta {
   font-size: 0.85rem;
-  color: var(--text-muted, rgba(255, 255, 255, 0.75));
+  color: var(--text-muted);
 }
 
 .settings-message {
   margin: 0.75rem 0 0 0;
   font-size: 0.95rem;
-  color: var(--accent, #646cff);
+  color: var(--accent);
 }
 
 .sidebar {
-  background: var(--sidebar-bg, #1e1e2e);
+  background: color-mix(in oklab, var(--panel) 96%, black);
   padding: 1rem;
-  border-right: 1px solid var(--border, #333);
+  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -331,9 +375,9 @@
 }
 
 .right-sidebar {
-  background: var(--sidebar-bg, #1e1e2e);
+  background: color-mix(in oklab, var(--panel) 96%, black);
   padding: 1rem;
-  border-left: 1px solid var(--border, #333);
+  border-left: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -356,12 +400,114 @@
   align-items: center;
   justify-content: center;
   min-height: 300px;
-  color: var(--muted, #888);
+  color: var(--muted);
 }
 
 .placeholder p {
   margin: 0;
   font-size: 1.1rem;
+}
+
+/* Evaluate page */
+.evaluate-description {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.9rem;
+  color: var(--muted, #888);
+  line-height: 1.4;
+}
+
+.evaluate-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.evaluate-textarea {
+  width: 100%;
+  resize: vertical;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+.evaluate-textarea:focus {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  background: var(--input-bg-focus);
+}
+
+.evaluate-meta {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.evaluate-meta-muted {
+  margin-top: 0.25rem;
+  color: var(--muted);
+}
+
+.evaluate-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.25rem 0 0.75rem 0;
+  font-size: 0.9rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.evaluate-toggle input {
+  cursor: pointer;
+}
+
+.evaluate-depth input {
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.evaluate-panel {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.evaluate-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.evaluate-row-pv {
+  align-items: flex-start;
+}
+
+.evaluate-k {
+  font-size: 0.8rem;
+  color: var(--muted, #888);
+  flex-shrink: 0;
+}
+
+.evaluate-v {
+  font-size: 0.9rem;
+  color: var(--text, inherit);
+  text-align: right;
+  word-break: break-word;
 }
 
 /* OpeningsMenu */
@@ -386,21 +532,22 @@
   width: 100%;
   padding: 0.4rem 0.6rem;
   margin-bottom: 0.75rem;
-  border: 1px solid var(--border, #333);
+  border: 1px solid var(--border);
   border-radius: 6px;
-  background: var(--input-bg, #2a2a2e);
-  color: var(--text, inherit);
+  background: var(--input-bg);
+  color: var(--text);
   font-size: 0.85rem;
   flex-shrink: 0;
 }
 
 .menu-search-input::placeholder {
-  color: var(--muted, #888);
+  color: var(--muted);
 }
 
 .menu-search-input:focus {
-  outline: 2px solid var(--accent, #646cff);
+  outline: 2px solid var(--ring);
   outline-offset: 2px;
+  background: var(--input-bg-focus);
 }
 
 .menu-list-wrapper {
@@ -424,7 +571,7 @@
   letter-spacing: 0.03em;
   margin: 0 0 0.35rem 0;
   padding: 0 0.25rem;
-  color: var(--muted, #888);
+  color: var(--muted);
 }
 
 .menu-list {
@@ -455,11 +602,12 @@
 }
 
 .menu-item:hover {
-  background: var(--hover-bg, rgba(255, 255, 255, 0.08));
+  background: var(--hover-bg);
 }
 
 .menu-item.selected {
-  background: var(--accent-bg, rgba(100, 108, 255, 0.25));
+  background: var(--accent-bg);
+  box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.18) inset;
 }
 
 .menu-item-eco {
@@ -481,7 +629,7 @@
 .mode-controls {
   margin-top: 1rem;
   padding-top: 1rem;
-  border-top: 1px solid var(--border, #333);
+  border-top: 1px solid var(--border);
   flex-shrink: 0;
 }
 
@@ -501,10 +649,10 @@
 
 .mode-buttons button {
   padding: 0.5rem 0.75rem;
-  border: 1px solid var(--border, #333);
+  border: 1px solid var(--border);
   border-radius: 6px;
   background: transparent;
-  color: var(--text, inherit);
+  color: var(--text);
   font-size: 0.9rem;
   cursor: pointer;
   text-align: left;
@@ -512,41 +660,56 @@
 }
 
 .mode-buttons button:hover {
-  background: var(--hover-bg, rgba(255, 255, 255, 0.08));
+  background: var(--hover-bg);
 }
 
 .mode-buttons button.active {
-  background: var(--accent-bg, rgba(100, 108, 255, 0.25));
-  border-color: var(--accent, #646cff);
+  background: var(--accent-bg-strong);
+  border-color: rgba(167, 139, 250, 0.35);
 }
 
 /* Openings tabs (Library / Learn / Practice) */
 .openings-tabs {
   display: inline-flex;
-  gap: 0.5rem;
+  gap: 0.25rem;
   margin-bottom: 1rem;
-  padding-bottom: 0.25rem;
-  border-bottom: 1px solid var(--border, #333);
+  padding: 0.25rem;
+  border: 1px solid var(--border);
+  background: color-mix(in oklab, var(--panel-2) 88%, black);
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25) inset;
 }
 
 .openings-tab {
-  padding: 0.35rem 0.9rem;
+  padding: 0.45rem 0.95rem;
   border-radius: 999px;
-  border: none;
+  border: 1px solid transparent;
   background: transparent;
-  color: var(--text, inherit);
+  color: var(--text-muted);
+  text-decoration: none;
   font-size: 0.9rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  user-select: none;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.08s;
 }
 
 .openings-tab:hover {
-  background: var(--hover-bg, rgba(255, 255, 255, 0.12));
+  background: var(--hover-bg);
+  color: var(--text);
 }
 
 .openings-tab.active {
-  background: var(--accent-bg, rgba(100, 108, 255, 0.25));
-  color: var(--text, inherit);
+  background: linear-gradient(
+    180deg,
+    rgba(167, 139, 250, 0.26),
+    rgba(167, 139, 250, 0.18)
+  );
+  border-color: rgba(167, 139, 250, 0.28);
+  color: var(--text);
+  box-shadow:
+    0 6px 18px rgba(0, 0, 0, 0.30),
+    0 0 0 1px rgba(167, 139, 250, 0.14) inset;
 }
 
 /* Line selector (tabs above board) */
@@ -559,10 +722,10 @@
 
 .line-tab {
   padding: 0.5rem 0.75rem;
-  border: 1px solid var(--border, #333);
+  border: 1px solid var(--border);
   border-radius: 6px;
-  background: transparent;
-  color: var(--text, inherit);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text);
   font-size: 0.9rem;
   cursor: pointer;
   display: inline-flex;
@@ -572,12 +735,12 @@
 }
 
 .line-tab:hover {
-  background: var(--hover-bg, rgba(255, 255, 255, 0.08));
+  background: var(--hover-bg);
 }
 
 .line-tab.active {
-  background: var(--accent-bg, rgba(100, 108, 255, 0.25));
-  border-color: var(--accent, #646cff);
+  background: var(--accent-bg);
+  border-color: rgba(167, 139, 250, 0.30);
 }
 
 .line-tab-eco {
@@ -612,12 +775,12 @@
 .practice-description {
   margin: 0 0 0.25rem 0;
   font-size: 0.9rem;
-  color: var(--muted, #888);
+  color: var(--muted);
 }
 
 .practice-empty {
   font-size: 0.9rem;
-  color: var(--muted, #888);
+  color: var(--muted);
   margin: 0.25rem 0 0;
 }
 
@@ -637,9 +800,9 @@
 .practice-filters select {
   padding: 0.35rem 0.5rem;
   border-radius: 4px;
-  border: 1px solid var(--border, #333);
-  background: var(--bg, #1a1a1a);
-  color: var(--text, #fff);
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--text);
   font-size: 0.9rem;
 }
 
@@ -667,11 +830,11 @@
 }
 
 .practice-unit-list button:hover {
-  background: var(--hover, rgba(255, 255, 255, 0.06));
+  background: var(--hover-bg);
 }
 
 .practice-unit-list button.active {
-  background: var(--accent, #646cff);
+  background: var(--accent-2);
   color: #fff;
 }
 
@@ -679,8 +842,8 @@
   align-self: flex-start;
   padding: 0.45rem 0.9rem;
   border-radius: 6px;
-  border: 1px solid var(--border, #333);
-  background: var(--accent, #646cff);
+  border: 1px solid rgba(167, 139, 250, 0.28);
+  background: linear-gradient(180deg, rgba(167, 139, 250, 0.85), rgba(139, 92, 246, 0.85));
   color: #fff;
   font-size: 0.9rem;
   cursor: pointer;
@@ -709,7 +872,7 @@
 
 .practice-opening-eco {
   font-size: 0.8rem;
-  color: var(--muted, #888);
+  color: var(--muted);
 }
 
 .practice-opening-side {
@@ -719,7 +882,7 @@
 .learn-description {
   margin: 0.25rem 0 0;
   font-size: 0.9rem;
-  color: var(--muted, #888);
+  color: var(--muted);
 }
 
 .learn-action-button {
@@ -727,8 +890,8 @@
   padding: 0.5rem 1rem;
   font-size: 1rem;
   font-weight: 600;
-  color: var(--bg, #111);
-  background: var(--accent, #0af);
+  color: rgba(255, 255, 255, 0.95);
+  background: linear-gradient(180deg, rgba(167, 139, 250, 0.85), rgba(139, 92, 246, 0.85));
   border: none;
   border-radius: 6px;
   cursor: pointer;
@@ -750,7 +913,7 @@
 
 .learn-success-panel .learn-success-line {
   font-size: 0.95rem;
-  color: var(--muted, #888);
+  color: var(--muted);
 }
 
 .learn-success-panel .learn-action-button {
@@ -919,7 +1082,7 @@
   .sidebar {
     grid-column: 1;
     border-right: none;
-    border-bottom: 1px solid var(--border, #333);
+    border-bottom: 1px solid var(--border);
   }
 
   .main {
@@ -929,7 +1092,7 @@
   .right-sidebar {
     grid-column: 1;
     border-left: none;
-    border-top: 1px solid var(--border, #333);
+    border-top: 1px solid var(--border);
     flex-direction: row;
     flex-wrap: wrap;
     align-items: flex-start;

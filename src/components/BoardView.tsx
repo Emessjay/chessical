@@ -8,15 +8,13 @@ import {
 } from "../lib/chess";
 import { MoveControls } from "./MoveControls";
 import type { PracticeSide } from "../types";
+import { formatMoveList, type ViewMode } from "./boardViewShared";
 
 const PLAY_INTERVAL_MS = 1500;
 const OPPONENT_MOVE_DELAY_MS = 700;
 
-export type ViewMode = "view" | "practice";
-export type { PracticeSide };
-
 /** When set, parent renders move list and MoveControls (e.g. in a sidebar). */
-export interface BoardViewControlledProps {
+interface BoardViewControlledProps {
   currentIndex: number;
   onIndexChange: (index: number) => void;
   isPlaying: boolean;
@@ -49,20 +47,6 @@ interface BoardViewProps {
   onBoardClick?: () => void;
 }
 
-export function formatMoveList(moves: string[]): string {
-  if (moves.length === 0) return "";
-  let text = "";
-  let moveNumber = 1;
-  for (let i = 0; i < moves.length; i++) {
-    if (i % 2 === 0) {
-      text += `${moveNumber}. `;
-    }
-    text += moves[i] + " ";
-    if (i % 2 === 1) moveNumber++;
-  }
-  return text.trim();
-}
-
 function isWhitePiece(pieceType: string): boolean {
   return pieceType.startsWith("w");
 }
@@ -92,13 +76,21 @@ export function BoardView({
   const currentIndex = isOrganicPractice ? moves.length : (controlled?.currentIndex ?? internalIndex);
   const setCurrentIndexRaw = controlled?.onIndexChange ?? setInternalIndex;
   const isPlaying = controlled?.isPlaying ?? internalPlaying;
-  const setIsPlaying = controlled ? () => { /* parent owns state */ } : setInternalPlaying;
+  const stopPlaying = useCallback(() => {
+    if (controlled) {
+      if (controlled.isPlaying) controlled.onPlayPause();
+      return;
+    }
+    setInternalPlaying(false);
+  }, [controlled]);
   const [practiceError, setPracticeError] = useState<string | null>(null);
   const renderControlsHere = !controlled;
   const opponentTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoPlayOpponentRef = useRef(false);
   const currentIndexRef = useRef(currentIndex);
-  currentIndexRef.current = currentIndex;
+  useEffect(() => {
+    currentIndexRef.current = currentIndex;
+  }, [currentIndex]);
   const setCurrentIndex = useCallback(
     (valueOrUpdater: number | ((prev: number) => number)) => {
       if (typeof valueOrUpdater === "function") {
@@ -123,7 +115,7 @@ export function BoardView({
   // Reset to start when opening changes
   useEffect(() => {
     setCurrentIndex(0);
-    setIsPlaying(false);
+    stopPlaying();
     setPracticeError(null);
     if (opponentTimeoutRef.current) {
       clearTimeout(opponentTimeoutRef.current);
@@ -140,14 +132,14 @@ export function BoardView({
     const id = setInterval(() => {
       setCurrentIndex((prev) => {
         if (prev >= maxIndex) {
-          setIsPlaying(false);
+          queueMicrotask(stopPlaying);
           return prev;
         }
         return prev + 1;
       });
     }, PLAY_INTERVAL_MS);
     return () => clearInterval(id);
-  }, [isPlaying, maxIndex, isPractice]);
+  }, [isPlaying, isPractice, maxIndex, setCurrentIndex, stopPlaying]);
 
   // Practice mode: auto-play opponent move after delay (only when we arrived at opponent turn by player having just moved)
   useEffect(() => {
@@ -186,16 +178,20 @@ export function BoardView({
   const onPrevious = useCallback(() => {
     autoPlayOpponentRef.current = false;
     setCurrentIndex((prev) => Math.max(0, prev - 1));
-    setIsPlaying(false);
-  }, []);
+    stopPlaying();
+  }, [setCurrentIndex, stopPlaying]);
 
   const onNext = useCallback(() => {
     setCurrentIndex((prev) => Math.min(maxIndex, prev + 1));
   }, [maxIndex]);
 
   const onPlayPause = useCallback(() => {
-    setIsPlaying((prev) => !prev);
-  }, []);
+    if (controlled) {
+      controlled.onPlayPause();
+    } else {
+      setInternalPlaying((prev) => !prev);
+    }
+  }, [controlled]);
 
   const onPieceDrop = useCallback(
     ({
@@ -284,7 +280,7 @@ export function BoardView({
       {
         startSquare: sq.from,
         endSquare: sq.to,
-        color: "rgba(0, 100, 255, 0.6)",
+        color: "rgba(167, 139, 250, 0.72)",
       },
     ];
   }, [showHintArrow, isPlayerTurn, currentIndex, maxIndex, moves]);
