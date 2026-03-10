@@ -1,5 +1,5 @@
 import { Chess } from "chess.js";
-import type { CourseUnit, PracticeSide } from "../types";
+import type { CourseUnit, Opening, PracticeSide } from "../types";
 
 /**
  * Normalize FEN to a comparable form (piece placement, turn, castling, en passant).
@@ -19,9 +19,33 @@ function sideToMoveFromFen(fen: string): "w" | "b" {
 }
 
 /**
+ * Returns the set of all normalized FENs that appear in any of the given units
+ * (at any point when replaying each line). Used to allow transpositions.
+ */
+function getAllPositionsInUnits(units: CourseUnit[]): Set<string> {
+  const positions = new Set<string>();
+  for (const unit of units) {
+    const chess = new Chess();
+    positions.add(normalizeFen(chess.fen()));
+    for (let i = 0; i < unit.moves.length; i++) {
+      try {
+        const result = chess.move(unit.moves[i], { strict: true });
+        if (!result) break;
+        positions.add(normalizeFen(chess.fen()));
+      } catch {
+        break;
+      }
+    }
+  }
+  return positions;
+}
+
+/**
  * For each studied unit, replay its moves; whenever the resulting position
  * matches `fen`, the next move in the line (if it exists and is for `sideToMove`)
- * is allowed. Returns the set of all such next moves (SAN).
+ * is allowed. Also allows transpositions: any legal move that reaches a position
+ * that appears in any studied line is allowed (e.g. Nf3 from Vienna e4 e5 Nc3 Nf6
+ * transposes to Four Knights). Returns the set of all such next moves (SAN).
  */
 export function getAllowedMovesAtPosition(
   fen: string,
@@ -31,6 +55,7 @@ export function getAllowedMovesAtPosition(
   const targetFen = normalizeFen(fen);
   const allowed = new Set<string>();
 
+  // 1) Moves that are the next move in a line that reaches this position
   for (const unit of units) {
     const chess = new Chess();
     const moves = unit.moves;
@@ -51,6 +76,27 @@ export function getAllowedMovesAtPosition(
           break;
         }
       }
+    }
+  }
+
+  // 2) Transpositions: allow any legal move that reaches a position in some studied line
+  const positionsInLines = getAllPositionsInUnits(units);
+  let chess: Chess;
+  try {
+    chess = new Chess(fen);
+  } catch {
+    return [...allowed];
+  }
+  const legalMoves = chess.moves({ verbose: true });
+  for (const m of legalMoves) {
+    const copy = new Chess(fen);
+    const result = copy.move({
+      from: m.from,
+      to: m.to,
+      promotion: (m.promotion as "q" | "r" | "b" | "n") ?? "q",
+    });
+    if (result && positionsInLines.has(normalizeFen(copy.fen()))) {
+      allowed.add(result.san);
     }
   }
 
@@ -83,4 +129,75 @@ export function pickComputerMove(
   const allowed = getAllowedMovesAtPosition(fen, units, side);
   if (allowed.length === 0) return null;
   return allowed[Math.floor(Math.random() * allowed.length)];
+}
+
+/**
+ * Returns the set of normalized FENs at the end of each line of an opening.
+ * Used to detect when we're at "end of opening" and can branch into others.
+ */
+export function getTerminalFensForOpening(opening: Opening): Set<string> {
+  const fens = new Set<string>();
+  const lines = opening.lines ?? [
+    { id: opening.id, name: opening.name, moves: opening.moves ?? [] },
+  ];
+  for (const line of lines) {
+    const chess = new Chess();
+    for (const move of line.moves) {
+      try {
+        if (!chess.move(move, { strict: true })) break;
+      } catch {
+        break;
+      }
+    }
+    fens.add(normalizeFen(chess.fen()));
+  }
+  return fens;
+}
+
+/**
+ * True if any line in the opening ever reaches any of the given FENs (normalized).
+ */
+export function openingReachesAnyOf(opening: Opening, fens: Set<string>): boolean {
+  const lines = opening.lines ?? [
+    { id: opening.id, name: opening.name, moves: opening.moves ?? [] },
+  ];
+  for (const line of lines) {
+    const chess = new Chess();
+    if (fens.has(normalizeFen(chess.fen()))) return true;
+    for (const move of line.moves) {
+      try {
+        if (!chess.move(move, { strict: true })) break;
+        if (fens.has(normalizeFen(chess.fen()))) return true;
+      } catch {
+        break;
+      }
+    }
+  }
+  return false;
+}
+
+/**
+ * When filtering practice by an opening, which opening IDs should be in the pool.
+ * Includes the filter opening plus any opening that "continues from" it (some line
+ * reaches a terminal position of the filter). So e.g. filtering by King's Pawn
+ * Game allows branching into Vienna, Four Knights, Italian, etc. from e4 e5.
+ */
+export function getOpeningIdsForPracticeFilter(
+  filterOpeningId: string,
+  openings: Opening[]
+): Set<string> {
+  const filterOpening = openings.find((o) => o.id === filterOpeningId);
+  if (!filterOpening) return new Set([filterOpeningId]);
+
+  const terminalFens = getTerminalFensForOpening(filterOpening);
+  const allowed = new Set<string>();
+  allowed.add(filterOpeningId);
+
+  for (const opening of openings) {
+    if (opening.id === filterOpeningId) continue;
+    if (openingReachesAnyOf(opening, terminalFens)) {
+      allowed.add(opening.id);
+    }
+  }
+  return allowed;
 }

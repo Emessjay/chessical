@@ -45,6 +45,8 @@ interface BoardViewProps {
   allowedMoves?: string[];
   /** Organic practice: when set, on correct move call this instead of advancing index; parent appends move and opponent reply. */
   onValidMove?: (san: string) => void;
+  /** Called when the user clicks any square (e.g. to reset after line complete in practice). */
+  onBoardClick?: () => void;
 }
 
 export function formatMoveList(moves: string[]): string {
@@ -82,6 +84,7 @@ export function BoardView({
   hideStepButtons = false,
   allowedMoves,
   onValidMove,
+  onBoardClick,
 }: BoardViewProps) {
   const [internalIndex, setInternalIndex] = useState(0);
   const [internalPlaying, setInternalPlaying] = useState(false);
@@ -304,6 +307,7 @@ export function BoardView({
               allowDragging: emptyAllowDragging,
               showNotation: true,
               boardOrientation,
+              ...(onBoardClick && { onSquareClick: onBoardClick }),
               ...(emptyAllowDragging && {
                 onPieceDrop,
                 canDragPiece,
@@ -361,6 +365,7 @@ export function BoardView({
             showNotation: true,
             squareStyles,
             boardOrientation,
+            ...(onBoardClick && { onSquareClick: onBoardClick }),
             onPieceDrop,
             canDragPiece,
             draggingPieceStyle: { transform: "scale(1)" },

@@ -17,6 +17,7 @@ import {
 import { getPositionAfterMoves } from "../lib/chess";
 import {
   getAllowedMovesAtPosition,
+  getOpeningIdsForPracticeFilter,
   isTerminalPosition,
   pickComputerMove,
 } from "../lib/practiceTree";
@@ -309,13 +310,20 @@ export function LibraryLayout() {
     );
   }, [learnProgressVersion]);
 
+  const practiceAllowedOpeningIds = useMemo(() => {
+    if (practiceOpeningFilter == null) return null;
+    return getOpeningIdsForPracticeFilter(practiceOpeningFilter, openings);
+  }, [practiceOpeningFilter]);
+
   const practiceFilteredPool = useMemo(() => {
     return practicePool.filter((u) => {
-      if (practiceOpeningFilter != null && u.openingId !== practiceOpeningFilter) return false;
+      if (practiceOpeningFilter != null && practiceAllowedOpeningIds != null) {
+        if (!practiceAllowedOpeningIds.has(u.openingId)) return false;
+      }
       if (practiceColorFilter != null && u.color !== practiceColorFilter) return false;
       return true;
     });
-  }, [practicePool, practiceOpeningFilter, practiceColorFilter]);
+  }, [practicePool, practiceOpeningFilter, practiceAllowedOpeningIds, practiceColorFilter]);
 
   const practiceOpeningsWithCleared = useMemo(() => {
     const ids = new Set(practicePool.map((u) => u.openingId));
@@ -372,7 +380,7 @@ export function LibraryLayout() {
         const fenAfterUser = getPositionAfterMoves(next, next.length).fen;
         if (isTerminalPosition(fenAfterUser, practiceFilteredPool)) {
           setPracticeLineJustCompleted(true);
-          return [];
+          return next;
         }
         practicePendingComputerMoveRef.current = true;
         return next;
@@ -407,7 +415,7 @@ export function LibraryLayout() {
         const fenAfter = getPositionAfterMoves(next, next.length).fen;
         if (isTerminalPosition(fenAfter, practiceFilteredPool)) {
           setPracticeLineJustCompleted(true);
-          return [];
+          return next;
         }
         return next;
       });
@@ -418,6 +426,13 @@ export function LibraryLayout() {
     practiceSide,
     practiceFilteredPool,
   ]);
+
+  const handlePracticeBoardClick = useCallback(() => {
+    if (practiceLineJustCompleted) {
+      setPracticeLineJustCompleted(false);
+      setPracticeGameMoves([]);
+    }
+  }, [practiceLineJustCompleted]);
 
   // Menu behaviour changes per tab
   const handleSelectFromMenu = useCallback(
@@ -458,8 +473,7 @@ export function LibraryLayout() {
             <p className="practice-description">
               Practice cleared lines. Filter by opening and color, then start a game. The
               computer will play moves that keep the game in your studied lines; you may
-              branch into any line you&apos;ve cleared. When a line is completed, the board
-              resets.
+              branch into any line you&apos;ve cleared.               When a line is completed, click the board to reset.
             </p>
             {practicePool.length === 0 ? (
               <p className="practice-empty">
@@ -645,9 +659,9 @@ export function LibraryLayout() {
           <>
             {practiceGameMoves !== null && practiceFilteredPool.length > 0 ? (
               <div className="practice-main-wrap">
-                {practiceLineJustCompleted && practiceGameMoves.length === 0 && (
+                {practiceLineJustCompleted && (
                   <p className="practice-line-complete" role="status">
-                    Line complete! Make a move to start the next game.
+                    Line complete! Click the board to start the next game.
                   </p>
                 )}
                 <BoardView
@@ -659,6 +673,9 @@ export function LibraryLayout() {
                   hideStepButtons
                   allowedMoves={practiceAllowedMoves}
                   onValidMove={handlePracticeValidMove}
+                  onBoardClick={
+                    practiceLineJustCompleted ? handlePracticeBoardClick : undefined
+                  }
                 />
               </div>
             ) : (
