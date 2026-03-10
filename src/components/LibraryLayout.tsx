@@ -31,7 +31,7 @@ const PRACTICE_OPPONENT_MOVE_DELAY_MS = 700;
 
 const RECENT_OPENINGS_KEY = "chessical_recent_openings";
 const RECENT_OPENINGS_MAX = 10;
-const RECENT_OPENINGS_DISPLAY = 3;
+const RECENT_OPENINGS_DISPLAY = 10;
 
 const allOpenings = openingsData as OpeningEntry[];
 const learnFamilies = learnFamiliesData as LearnFamilyConfig[];
@@ -117,9 +117,9 @@ export function LibraryLayout() {
   }, [recentOpeningIds]);
 
   const visibleLibraryOpenings = useMemo(() => {
-    const sorted = [...libraryItems].sort(sortByEcoThenName);
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return sorted;
+    if (!q) return [];
+    const sorted = [...libraryItems].sort(sortByEcoThenName);
     return sorted.filter(
       (o) =>
         (o.name ?? "").toLowerCase().includes(q) ||
@@ -267,15 +267,18 @@ export function LibraryLayout() {
   }, [learnJustClearedUnitId]);
 
   const learnVisibleOpenings = useMemo(() => {
-    const sorted = [...learnOpenings].sort((a, b) =>
-      sortByEcoThenName(
+    const byProminence = [...learnOpenings].sort((a, b) => {
+      const promA = a.prominence ?? 0;
+      const promB = b.prominence ?? 0;
+      if (promB !== promA) return promB - promA;
+      return sortByEcoThenName(
         { eco: a.eco, name: a.name },
         { eco: b.eco, name: b.name }
-      )
-    );
+      );
+    });
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return sorted;
-    return sorted.filter(
+    if (!q) return byProminence;
+    return byProminence.filter(
       (o) =>
         (o.name ?? "").toLowerCase().includes(q) ||
         (o.eco ?? "").toLowerCase().includes(q)

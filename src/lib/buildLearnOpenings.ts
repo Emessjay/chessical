@@ -5,8 +5,17 @@ export interface LearnFamilyConfig {
   name: string;
   namePrefixes: string[];
   maxLines?: number;
+  /** Prominence as approximate percentage of the time this opening is played (0–100). Used for ordering. */
+  prominence?: number;
+  /**
+   * Optional per-line prominence override (by OpeningEntry id).
+   * Higher numbers are shown earlier within the family.
+   */
+  lineProminence?: Record<string, number>;
   /** Black's first moves in priority order (most common first). Used to order same-length lines. */
   preferredResponses?: string[];
+  /** ECO code for the family (e.g. B07 for Pirc). If omitted, taken from the longest line. */
+  eco?: string;
 }
 
 /**
@@ -18,8 +27,11 @@ export function buildLearnOpenings(
   families: LearnFamilyConfig[]
 ): Opening[] {
   const result: Opening[] = [];
+  const byProminence = [...families].sort(
+    (a, b) => (b.prominence ?? 0) - (a.prominence ?? 0)
+  );
 
-  for (const fam of families) {
+  for (const fam of byProminence) {
     const matches = allEntries.filter((entry) => {
       const lower = entry.name.toLowerCase();
       return fam.namePrefixes.some((p) => lower.startsWith(p.toLowerCase()));
@@ -28,7 +40,11 @@ export function buildLearnOpenings(
     if (matches.length === 0) continue;
 
     const preferred = fam.preferredResponses ?? [];
+    const lineProm = fam.lineProminence ?? {};
     const sorted = [...matches].sort((a, b) => {
+      const promA = lineProm[a.id] ?? 0;
+      const promB = lineProm[b.id] ?? 0;
+      if (promB !== promA) return promB - promA;
       const lenA = a.moves.length;
       const lenB = b.moves.length;
       if (lenA !== lenB) return lenA - lenB;
@@ -57,11 +73,16 @@ export function buildLearnOpenings(
       };
     });
 
+    // Use family eco override, or ECO from the longest line (most specific), not the first/shortest
+    const lineForEco = [...lines].sort((a, b) => b.moves.length - a.moves.length)[0];
+    const familyEco = fam.eco ?? lineForEco?.eco ?? lines[0]?.eco;
+
     result.push({
       id: fam.id,
       name: fam.name,
-      eco: lines[0]?.eco,
+      eco: familyEco,
       lines,
+      prominence: fam.prominence ?? 0,
     });
   }
 

@@ -1,7 +1,7 @@
 import type { Opening, CourseUnit, PracticeSide } from "../types";
 
-/** Minimum half-moves for a line to be shown in the Learn stage (2 full moves). */
-export const MIN_MOVES_FOR_LEARN = 4;
+/** Minimum half-moves for a line to be shown in the Learn stage. One-move (1 half-move) lines are skipped. */
+export const MIN_MOVES_FOR_LEARN = 2;
 
 /**
  * Builds all course units for one opening (each line × white and black).
@@ -77,15 +77,17 @@ export function getOrderedCourseUnits(
     minMoves != null
       ? rawLines.filter((line) => line.moves.length >= minMoves)
       : rawLines;
-  // If minMoves filtered out everything (e.g. family has many short stem lines), use all lines so the course still has content
-  if (lines.length === 0 && rawLines.length > 0) lines = rawLines;
+  // If minMoves filtered out everything, use lines with at least 2 half-moves (skip only true one-move stubs)
+  if (lines.length === 0 && rawLines.length > 0) {
+    lines = rawLines.filter((line) => line.moves.length >= 2);
+  }
   if (lines.length === 0) return [];
 
   const all = getCourseUnitsForOpening(opening);
   if (all.length <= 2) {
     if (minMoves != null) {
       const filtered = all.filter((u) => u.moves.length >= minMoves);
-      return filtered.length > 0 ? filtered : all;
+      return filtered; // do not fall back to one-move lines
     }
     return all;
   }

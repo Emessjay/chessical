@@ -19,6 +19,8 @@ export interface Opening {
   eco?: string;
   moves?: string[];
   lines?: OpeningLine[];
+  /** Prominence as percentage of the time the opening is played (0–100). Used for ordering. */
+  prominence?: number;
 }
 
 export type PracticeSide = "white" | "black";

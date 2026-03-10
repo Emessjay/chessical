@@ -1,9 +1,11 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AppLayout } from "./components/AppLayout";
 import { LibraryLayout } from "./components/LibraryLayout";
+import { TrainerLayout } from "./components/TrainerLayout";
 import { AnalysisPage } from "./pages/AnalysisPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { TrainerPage } from "./pages/TrainerPage";
+import { EndgameTrainerPage } from "./pages/EndgameTrainerPage";
 import "./App.css";
 
 function App() {
@@ -24,7 +26,11 @@ function App() {
         <Route path="analysis" element={<AnalysisPage />} />
         <Route path="evaluate" element={<Navigate to="/analysis" replace />} />
 
-        <Route path="trainer" element={<TrainerPage />} />
+        <Route path="trainer" element={<TrainerLayout />}>
+          <Route index element={<Navigate to="/trainer/autopsy" replace />} />
+          <Route path="autopsy" element={<TrainerPage />} />
+          <Route path="endgame" element={<EndgameTrainerPage />} />
+        </Route>
 
         <Route path="settings" element={<SettingsPage />} />
       </Route>

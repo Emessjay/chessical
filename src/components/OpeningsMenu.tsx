@@ -40,7 +40,11 @@ export function OpeningsMenu({
   searchQuery,
   onSearchChange,
 }: OpeningsMenuProps) {
-  const showRecent = searchQuery.trim() === "" && recentOpenings.length > 0;
+  const hasSearch = searchQuery.trim() !== "";
+  const showRecent = !hasSearch && recentOpenings.length > 0;
+  const listWhenNoSearch = showRecent ? recentOpenings : openings;
+  const sectionTitleWhenNoSearch = showRecent ? "Recent" : "Openings";
+  const showListWhenNoSearch = !hasSearch && listWhenNoSearch.length > 0;
 
   return (
     <nav className="openings-menu" aria-label="Openings">
@@ -54,11 +58,11 @@ export function OpeningsMenu({
         aria-label="Search openings by name or ECO"
       />
       <div className="menu-list-wrapper">
-        {showRecent && (
-          <section className="menu-section" aria-label="Recent">
-            <h3 className="menu-section-title">Recent</h3>
+        {showListWhenNoSearch && (
+          <section className="menu-section" aria-label={sectionTitleWhenNoSearch}>
+            <h3 className="menu-section-title">{sectionTitleWhenNoSearch}</h3>
             <ul className="menu-list">
-              {recentOpenings.map((opening) => (
+              {listWhenNoSearch.map((opening) => (
                 <OpeningItem
                   key={opening.id}
                   opening={opening}
@@ -69,21 +73,21 @@ export function OpeningsMenu({
             </ul>
           </section>
         )}
-        <section className="menu-section" aria-label="All openings">
-          <h3 className="menu-section-title">
-            {searchQuery.trim() ? "Results" : "All openings (ECO order)"}
-          </h3>
-          <ul className="menu-list">
-            {openings.map((opening) => (
-              <OpeningItem
-                key={opening.id}
-                opening={opening}
-                isSelected={selectedId === opening.id}
-                onSelect={onSelect}
-              />
-            ))}
-          </ul>
-        </section>
+        {hasSearch && (
+          <section className="menu-section" aria-label="Search results">
+            <h3 className="menu-section-title">Results</h3>
+            <ul className="menu-list">
+              {openings.map((opening) => (
+                <OpeningItem
+                  key={opening.id}
+                  opening={opening}
+                  isSelected={selectedId === opening.id}
+                  onSelect={onSelect}
+                />
+              ))}
+            </ul>
+          </section>
+        )}
       </div>
     </nav>
   );
