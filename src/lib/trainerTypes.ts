@@ -42,8 +42,13 @@ export interface TrainerAnalysisResult {
 }
 
 export interface TrainerAnalysisOptions {
-  /** Optional: run engine evaluation on key moves for stronger blunder/tactic detection */
+  /**
+   * Optional: run engine evaluation (centipawns from White's perspective).
+   * Used to decide if a resignation was "early" (position not already lost).
+   */
   runEngineEval?: (fen: string, depth?: number) => Promise<number>;
-  /** Move count below which resignation is "early" */
+  /** Move count below which we consider resignation for "early" check (only with runEngineEval). */
   earlyResignationMoveThreshold?: number;
+  /** Centipawn threshold: if eval for resigning side is below this, position is "lost" (not early resign). */
+  earlyResignationLostThreshold?: number;
 }

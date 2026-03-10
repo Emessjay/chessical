@@ -1,0 +1,196 @@
+[
+  {
+    "id": "kings-pawn-game",
+    "name": "King's Pawn Game",
+    "namePrefixes": [
+      "King's Pawn Game"
+    ],
+    "maxLines": 6
+  },
+  {
+    "id": "italian",
+    "name": "Italian Game",
+    "namePrefixes": [
+      "Italian Game"
+    ],
+    "maxLines": 8
+  },
+  {
+    "id": "ruy-lopez",
+    "name": "Ruy Lopez",
+    "namePrefixes": [
+      "Ruy Lopez"
+    ],
+    "maxLines": 8
+  },
+  {
+    "id": "scotch",
+    "name": "Scotch Game",
+    "namePrefixes": [
+      "Scotch Game"
+    ],
+    "maxLines": 6
+  },
+  {
+    "id": "four-knights",
+    "name": "Four Knights Game",
+    "namePrefixes": [
+      "Four Knights Game"
+    ],
+    "maxLines": 6
+  },
+  {
+    "id": "sicilian",
+    "name": "Sicilian Defense",
+    "namePrefixes": [
+      "Sicilian Defense"
+    ],
+    "maxLines": 10
+  },
+  {
+    "id": "french",
+    "name": "French Defense",
+    "namePrefixes": [
+      "French Defense"
+    ],
+    "maxLines": 8
+  },
+  {
+    "id": "caro-kann",
+    "name": "Caro-Kann Defense",
+    "namePrefixes": [
+      "Caro-Kann Defense"
+    ],
+    "maxLines": 6
+  },
+  {
+    "id": "pirc",
+    "name": "Pirc Defense",
+    "namePrefixes": [
+      "Pirc Defense"
+    ],
+    "maxLines": 6
+  },
+  {
+    "id": "scandinavian",
+    "name": "Scandinavian Defense",
+    "namePrefixes": [
+      "Scandinavian Defense"
+    ],
+    "maxLines": 6
+  },
+  {
+    "id": "queens-gambit",
+    "name": "Queen's Gambit",
+    "namePrefixes": [
+      "Queen's Gambit",
+      "Queen's Gambit Declined",
+      "Queen's Gambit Accepted"
+    ],
+    "maxLines": 10
+  },
+  {
+    "id": "slav",
+    "name": "Slav Defense",
+    "namePrefixes": [
+      "Slav Defense",
+      "Semi-Slav Defense"
+    ],
+    "maxLines": 8
+  },
+  {
+    "id": "kings-indian",
+    "name": "King's Indian Defense",
+    "namePrefixes": [
+      "King's Indian Defense"
+    ],
+    "maxLines": 8
+  },
+  {
+    "id": "gruenfeld",
+    "name": "Grünfeld Defense",
+    "namePrefixes": [
+      "Grünfeld Defense",
+      "Grunfeld Defense"
+    ],
+    "maxLines": 6
+  },
+  {
+    "id": "queens-indian",
+    "name": "Queen's Indian Defense",
+    "namePrefixes": [
+      "Queen's Indian Defense"
+    ],
+    "maxLines": 6
+  },
+  {
+    "id": "nimzo-indian",
+    "name": "Nimzo-Indian Defense",
+    "namePrefixes": [
+      "Nimzo-Indian Defense"
+    ],
+    "maxLines": 6
+  },
+  {
+    "id": "benoni",
+    "name": "Benoni Defense",
+    "namePrefixes": [
+      "Benoni Defense",
+      "Old Benoni Defense"
+    ],
+    "maxLines": 6
+  },
+  {
+    "id": "benko",
+    "name": "Benko Gambit",
+    "namePrefixes": [
+      "Benko Gambit"
+    ],
+    "maxLines": 4
+  },
+  {
+    "id": "english",
+    "name": "English Opening",
+    "namePrefixes": [
+      "English Opening",
+      "Symmetrical English"
+    ],
+    "maxLines": 10,
+    "preferredResponses": [
+      "e5",
+      "c5",
+      "e6",
+      "g6",
+      "c6",
+      "d5",
+      "Nc6",
+      "f5",
+      "b5",
+      "g5"
+    ]
+  },
+  {
+    "id": "reti",
+    "name": "Reti Opening",
+    "namePrefixes": [
+      "Reti Opening"
+    ],
+    "maxLines": 6
+  },
+  {
+    "id": "catalan",
+    "name": "Catalan Opening",
+    "namePrefixes": [
+      "Catalan Opening"
+    ],
+    "maxLines": 6
+  },
+  {
+    "id": "dutch",
+    "name": "Dutch Defense",
+    "namePrefixes": [
+      "Dutch Defense"
+    ],
+    "maxLines": 6
+  }
+]

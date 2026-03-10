@@ -17,7 +17,7 @@ const LOSS_CAUSES: LossCause[] = [
   "other",
 ];
 
-const EARLY_RESIGN_MOVE_THRESHOLD = 25;
+const EARLY_RESIGN_LOST_CP = -400; // centipawns: below this = position already lost
 
 function isUserLoss(game: TrainerGame): boolean {
   if (game.result === "1/2-1/2") return false;
@@ -36,15 +36,8 @@ function checkLowTime(game: TrainerGame): boolean {
   );
 }
 
-function checkEarlyResignation(
-  game: TrainerGame,
-  fullMoveCount: number,
-  threshold: number
-): boolean {
-  if (game.result === "1/2-1/2") return false;
-  const term = game.termination.toLowerCase();
-  if (!term.includes("resign")) return false;
-  return fullMoveCount < threshold;
+function isResignation(game: TrainerGame): boolean {
+  return game.termination.toLowerCase().includes("resign");
 }
 
 /** Returns true if after the given position (opponent to move), the opponent can capture a piece and we have no recapture. */
@@ -68,10 +61,10 @@ function hasHangingPiece(chess: Chess): { hasHang: boolean; detail?: string } {
   return { hasHang: false };
 }
 
-function analyzeOneGame(
+async function analyzeOneGame(
   game: TrainerGame,
   options: TrainerAnalysisOptions
-): PerGameAnalysis {
+): Promise<PerGameAnalysis> {
   const isLoss = isUserLoss(game);
   const secondary: LossCause[] = [];
   let primary: LossCause | null = null;
@@ -85,9 +78,6 @@ function analyzeOneGame(
       secondaryCauses: [],
     };
   }
-
-  const earlyThreshold =
-    options.earlyResignationMoveThreshold ?? EARLY_RESIGN_MOVE_THRESHOLD;
 
   let chess: Chess;
   try {
@@ -104,7 +94,6 @@ function analyzeOneGame(
   }
 
   const history = chess.history({ verbose: false });
-  const fullMoveCount = Math.ceil(history.length / 2);
 
   if (checkLowTime(game)) {
     secondary.push("low_time");
@@ -114,13 +103,8 @@ function analyzeOneGame(
     }
   }
 
-  if (checkEarlyResignation(game, fullMoveCount, earlyThreshold)) {
-    secondary.push("early_resignation");
-    if (!primary) {
-      primary = "early_resignation";
-      detail = `Resigned early (move ${fullMoveCount})`;
-    }
-  }
+  // Early resignation: only if we have engine eval and position was NOT already lost
+  // (resigning when down 8 is not "early resignation" — the cause is what got you lost)
 
   chess.reset();
   let hangInEndgame = false;
@@ -141,9 +125,6 @@ function analyzeOneGame(
           if (!secondary.includes("hanging_pieces")) {
             secondary.push("hanging_pieces");
           }
-          if (!secondary.includes("blundered_tactics")) {
-            secondary.push("blundered_tactics");
-          }
         }
       }
     } catch {
@@ -157,9 +138,6 @@ function analyzeOneGame(
     if (hangInEndgame) {
       secondary.push("poor_endgame");
     }
-  } else if (secondary.includes("blundered_tactics") && !primary) {
-    primary = "blundered_tactics";
-    detail = lastHangDetail ?? "Tactical mistake";
   }
 
   if (hangInEndgame && !secondary.includes("poor_endgame")) {
@@ -167,12 +145,32 @@ function analyzeOneGame(
   }
   if (!primary && secondary.includes("poor_endgame")) {
     primary = "poor_endgame";
-    detail = "Mistakes in endgame";
+    detail = "Endgame issues";
+  }
+
+  // Early resignation: only when we can prove the position wasn't already lost (engine).
+  // Without engine we never attribute to early_resignation — we'd wrongly blame "resignation"
+  // when they were actually lost (e.g. -8).
+  if (!primary && isResignation(game) && options.runEngineEval) {
+    const lostThreshold = options.earlyResignationLostThreshold ?? EARLY_RESIGN_LOST_CP;
+    try {
+      const cpWhite = await options.runEngineEval(chess.fen(), 12);
+      const cpForUser = game.isUserWhite ? cpWhite : -cpWhite;
+      if (cpForUser >= lostThreshold) {
+        primary = "early_resignation";
+        secondary.push("early_resignation");
+        detail = "Resigned in playable position";
+      }
+    } catch {
+      // Engine failed; don't attribute to early resignation
+    }
   }
 
   if (!primary) {
-    primary = "other";
-    detail = "Loss (cause not classified)";
+    // If nothing specific was detected but it is a loss, treat it as a generic
+    // tactical mistake to distinguish from pure board-vision hangs.
+    primary = "blundered_tactics";
+    detail = "Tactical mistake";
   }
 
   return {
@@ -214,24 +212,27 @@ function buildSummary(results: PerGameAnalysis[]): TrainerSummary {
 
 /**
  * Analyzes games and classifies loss causes using lightweight heuristics.
- * Optional runEngineEval can be provided later for deeper analysis.
+ * When runEngineEval is provided, resignation is only labeled "early" if the
+ * final position was not already lost (eval above earlyResignationLostThreshold).
  */
-export function analyzeGamesForLossCauses(
+export async function analyzeGamesForLossCauses(
   games: TrainerGame[],
   options: TrainerAnalysisOptions = {}
-): TrainerAnalysisResult {
-  const results: PerGameAnalysis[] = games.map((g) => analyzeOneGame(g, options));
+): Promise<TrainerAnalysisResult> {
+  const results = await Promise.all(
+    games.map((g) => analyzeOneGame(g, options))
+  );
   const summary = buildSummary(results);
   return { games: results, summary };
 }
 
 export function lossCauseLabel(cause: LossCause): string {
   const labels: Record<LossCause, string> = {
-    blundered_tactics: "Blundered tactics",
-    poor_endgame: "Poor endgame",
+    blundered_tactics: "Tactics blunder",
+    poor_endgame: "Endgame issues",
     low_time: "Low time",
     early_resignation: "Early resignation",
-    hanging_pieces: "Hanging pieces",
+    hanging_pieces: "Hanging piece",
     other: "Other",
   };
   return labels[cause] ?? cause;

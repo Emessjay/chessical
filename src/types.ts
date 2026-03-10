@@ -1,3 +1,11 @@
+/** Single opening entry (flat), used for the full library list. */
+export interface OpeningEntry {
+  id: string;
+  name: string;
+  eco?: string;
+  moves: string[];
+}
+
 export interface OpeningLine {
   id: string;
   name: string;

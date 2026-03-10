@@ -1,5 +1,8 @@
 import type { Opening, CourseUnit, PracticeSide } from "../types";
 
+/** Minimum half-moves for a line to be shown in the Learn stage (2 full moves). */
+export const MIN_MOVES_FOR_LEARN = 4;
+
 /**
  * Builds all course units for one opening (each line × white and black).
  * Order is not yet chunked; use getOrderedCourseUnits for the final sequence.
@@ -47,21 +50,49 @@ export function getCourseUnitId(unit: CourseUnit): string {
   return `${unit.openingId}:${unit.lineId}:${unit.color}`;
 }
 
+export interface GetOrderedCourseUnitsOpts {
+  /** When set, only include lines with at least this many half-moves (for Learn tab). */
+  minMoves?: number;
+}
+
 /**
  * Returns course units in the order they should be learned: chunks of 2–3 lines,
  * within each chunk (L1 white, L2 white, [L3 white], L1 black, L2 black, [L3 black]).
  */
 export function getOrderedCourseUnits(
   opening: Opening,
-  chunkSize: number = 2
+  chunkSize: number = 2,
+  opts?: GetOrderedCourseUnitsOpts
 ): CourseUnit[] {
+  const minMoves = opts?.minMoves;
+  const rawLines =
+    opening.lines ?? [
+      {
+        id: opening.id,
+        name: opening.name,
+        moves: opening.moves ?? [],
+      },
+    ];
+  let lines =
+    minMoves != null
+      ? rawLines.filter((line) => line.moves.length >= minMoves)
+      : rawLines;
+  // If minMoves filtered out everything (e.g. family has many short stem lines), use all lines so the course still has content
+  if (lines.length === 0 && rawLines.length > 0) lines = rawLines;
+  if (lines.length === 0) return [];
+
   const all = getCourseUnitsForOpening(opening);
-  if (all.length <= 2) return all;
+  if (all.length <= 2) {
+    if (minMoves != null) {
+      const filtered = all.filter((u) => u.moves.length >= minMoves);
+      return filtered.length > 0 ? filtered : all;
+    }
+    return all;
+  }
 
   // Group by line: we have pairs (white, black) per line. Reorder so that
   // we get chunks of `chunkSize` lines, and within each chunk we interleave
   // as (L1 white, L2 white, ..., L1 black, L2 black, ...).
-  const lines = opening.lines ?? [{ id: opening.id, name: opening.name, moves: opening.moves ?? [] }];
   const ordered: CourseUnit[] = [];
 
   for (let i = 0; i < lines.length; i += chunkSize) {

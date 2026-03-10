@@ -20,6 +20,18 @@ Run in a desktop window (Tauri + Vite):
 npm run tauri:dev
 ```
 
+### Openings data
+
+The **Library** tab shows every opening from the [Lichess opening database](https://github.com/lichess-org/chess-openings). The **Learn** tab shows a curated set of high-level families (e.g. Sicilian, Queen's Gambit); within each family, lines are ordered from most general to most specific.
+
+To refresh openings from Lichess (run occasionally or after upstream changes):
+
+```bash
+npm run fetch:openings
+```
+
+This overwrites `src/data/openings.json` (full list) and `src/data/learn-families.json` (family config for Learn). You do not need to run this to build or run the app; the repo includes generated data.
+
 ## Build installers
 
 Build production bundles (macOS `.app` + `.dmg`, Windows installers on Windows):

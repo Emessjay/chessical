@@ -71,6 +71,7 @@ export function BoardView({
   allowedMoves,
   onValidMove,
   onBoardClick,
+  onAnalysisMove,
 }: BoardViewProps) {
   const [internalIndex, setInternalIndex] = useState(0);
   const [internalPlaying, setInternalPlaying] = useState(false);
@@ -107,7 +108,6 @@ export function BoardView({
   const maxIndex = moves.length;
 
   const isPractice = mode === "practice";
-  const isAnalysis = mode === "analysis";
   const isPlayerTurn =
     isPractice &&
     ((practiceSide === "white" && currentIndex % 2 === 0) ||
@@ -115,8 +115,9 @@ export function BoardView({
   const isOpponentTurn =
     isPractice && !isPlayerTurn && currentIndex < maxIndex && !isOrganicPractice;
 
-  // Reset to start when opening changes
+  // Reset to start when opening changes (skip in analysis mode; parent owns moves and index)
   useEffect(() => {
+    if (mode === "analysis") return;
     setCurrentIndex(0);
     stopPlaying();
     setPracticeError(null);
@@ -127,11 +128,11 @@ export function BoardView({
     if (isPractice && practiceSide === "black") {
       autoPlayOpponentRef.current = true;
     }
-  }, [moves, isPractice, practiceSide]);
+  }, [moves, isPractice, practiceSide, mode]);
 
-  // View mode: auto-step when playing
+  // View/analysis mode: auto-step when playing
   useEffect(() => {
-    if (!isPractice || !isPlaying) return;
+    if (isPractice || !isPlaying) return;
     const id = setInterval(() => {
       setCurrentIndex((prev) => {
         if (prev >= maxIndex) {

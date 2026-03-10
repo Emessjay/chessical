@@ -30,7 +30,7 @@ export function EvaluatePage() {
   const clientRef = useRef<StockfishClient | null>(null);
   const analysisStopRef = useRef<(() => void) | null>(null);
   const [lastInfo, setLastInfo] = useState<StockfishInfo | null>(null);
-  const [bestMoveUci, setBestMoveUci] = useState<string | null>(null);
+  const [_bestMoveUci, setBestMoveUci] = useState<string | null>(null);
   const [engineStatus, setEngineStatus] = useState<string>("Idle");
   const [topLines, setTopLines] = useState<StockfishPvLine[] | null>(null);
 

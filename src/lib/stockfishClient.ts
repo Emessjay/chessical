@@ -309,6 +309,20 @@ export class StockfishClient {
     };
   }
 
+  /**
+   * Returns centipawn evaluation from White's perspective.
+   * Uses shallow depth for speed. Mate scores are converted to ±10000 cp.
+   */
+  async getPositionEval(fen: string, depth: number = 12): Promise<number> {
+    const analysis = await this.analyzePosition(fen, { depth });
+    const { lastInfo } = await analysis.done;
+    analysis.stop();
+    const score = lastInfo?.score;
+    if (!score) return 0;
+    if (score.type === "cp") return score.value;
+    return score.value > 0 ? 10000 : -10000;
+  }
+
   destroy() {
     if (this.destroyed) return;
     this.destroyed = true;

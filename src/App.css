@@ -726,6 +726,46 @@
   word-break: break-word;
 }
 
+.evaluate-top-moves {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.evaluate-top-moves-title {
+  font-size: 0.8rem;
+  color: var(--muted, #888);
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.evaluate-top-moves-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  list-style: decimal;
+}
+
+.evaluate-top-moves-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.evaluate-top-move-san {
+  font-size: 0.9rem;
+  color: var(--text, inherit);
+}
+
+.evaluate-top-move-score {
+  font-size: 0.9rem;
+  color: var(--text, inherit);
+  flex-shrink: 0;
+}
+
 /* Analysis page – moves box (top-right, fixed size, scrollable) */
 .analysis-moves-box {
   flex-shrink: 0;

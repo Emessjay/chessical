@@ -1,14 +1,26 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { getChessComUsername, setChessComUsername } from "../lib/userSettings";
 import { fetchLatestGames, ChessComError } from "../lib/chessComClient";
 import {
   analyzeGamesForLossCauses,
   lossCauseLabel,
 } from "../lib/trainerAnalysis";
+import { StockfishClient } from "../lib/stockfishClient";
 import type { TrainerGame } from "../lib/trainerTypes";
 import type { PerGameAnalysis, TrainerAnalysisResult } from "../lib/trainerTypes";
 
 type Status = "idle" | "fetchingGames" | "analyzing" | "done" | "error";
+
+function formatTimeControl(raw: string): string {
+  if (!raw) return "—";
+  const parts = raw.split("+");
+  const base = Number.parseInt(parts[0] ?? "", 10);
+  const inc = Number.parseInt(parts[1] ?? "0", 10);
+  if (Number.isNaN(base)) return raw;
+  const minutes = Math.round(base / 60);
+  const incSeconds = Number.isNaN(inc) ? 0 : inc;
+  return `${minutes}+${incSeconds}`;
+}
 
 export function TrainerPage() {
   const [usernameInput, setUsernameInput] = useState("");
@@ -17,6 +29,7 @@ export function TrainerPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [result, setResult] = useState<TrainerAnalysisResult | null>(null);
+  const stockfishRef = useRef<StockfishClient | null>(null);
 
   const runPipeline = useCallback(async (username: string) => {
     setStatus("fetchingGames");
@@ -45,7 +58,15 @@ export function TrainerPage() {
         return;
       }
       setStatus("analyzing");
-      const analysisResult = analyzeGamesForLossCauses(games);
+      const client = stockfishRef.current ?? (stockfishRef.current = new StockfishClient());
+      let runEngineEval: ((fen: string, depth?: number) => Promise<number>) | undefined;
+      try {
+        await client.init();
+        runEngineEval = (fen: string, depth?: number) => client.getPositionEval(fen, depth ?? 12);
+      } catch {
+        runEngineEval = undefined;
+      }
+      const analysisResult = await analyzeGamesForLossCauses(games, { runEngineEval });
       setResult(analysisResult);
       setStatus("done");
       setLastUpdated(new Date());
@@ -187,16 +208,17 @@ export function TrainerPage() {
                     <tr>
                       <th>Opponent</th>
                       <th>Color</th>
-                      <th>Result</th>
                       <th>Time</th>
                       <th>Date</th>
                       <th>Loss cause</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {result.games.map((row: PerGameAnalysis, idx: number) => (
-                      <GameRow key={idx} row={row} username={savedUsername ?? ""} />
-                    ))}
+                    {result.games
+                      .filter((row) => row.isUserLoss)
+                      .map((row: PerGameAnalysis, idx: number) => (
+                        <GameRow key={idx} row={row} username={savedUsername ?? ""} />
+                      ))}
                   </tbody>
                 </table>
               </div>
@@ -228,15 +250,12 @@ function GameRow({
     <tr>
       <td>{opponent}</td>
       <td>{color}</td>
-      <td>{game.result}</td>
-      <td>{game.timeControl}</td>
+      <td>{formatTimeControl(game.timeControl)}</td>
       <td>{date}</td>
       <td>
         {isUserLoss && primaryCause ? (
           <span title={detail ?? undefined} className="trainer-cause-badge">
             {lossCauseLabel(primaryCause)}
-            {detail && " · "}
-            {detail}
           </span>
         ) : (
           "—"

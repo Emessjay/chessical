@@ -1,7 +1,10 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import openingsData from "../data/openings.json";
-import type { Opening, LearnUnitProgress, PracticeSide } from "../types";
+import learnFamiliesData from "../data/learn-families.json";
+import type { Opening, OpeningEntry, LearnUnitProgress, PracticeSide } from "../types";
+import { buildLearnOpenings } from "../lib/buildLearnOpenings";
+import type { LearnFamilyConfig } from "../lib/buildLearnOpenings";
 import { OpeningsMenu } from "./OpeningsMenu";
 import { MoveControls } from "./MoveControls";
 import { BoardView } from "./BoardView";
@@ -9,6 +12,7 @@ import { formatMoveList, type ViewMode } from "./boardViewShared";
 import {
   getOrderedCourseUnits,
   getCourseUnitId,
+  MIN_MOVES_FOR_LEARN,
 } from "../lib/course";
 import {
   loadProgressByUnitId,
@@ -29,7 +33,9 @@ const RECENT_OPENINGS_KEY = "chessical_recent_openings";
 const RECENT_OPENINGS_MAX = 10;
 const RECENT_OPENINGS_DISPLAY = 3;
 
-const openings = openingsData as Opening[];
+const allOpenings = openingsData as OpeningEntry[];
+const learnFamilies = learnFamiliesData as LearnFamilyConfig[];
+const learnOpenings: Opening[] = buildLearnOpenings(allOpenings, learnFamilies);
 
 type OpeningsTab = "library" | "learn" | "practice";
 
@@ -44,33 +50,16 @@ function sortByEcoThenName<A extends { eco?: string; name: string }>(a: A, b: A)
   return cmp !== 0 ? cmp : a.name.localeCompare(b.name);
 }
 
-function buildLibraryItems(source: Opening[]): LibraryItem[] {
-  const items: LibraryItem[] = [];
-
-  for (const opening of source) {
-    if (opening.lines?.length) {
-      for (const line of opening.lines) {
-        items.push({
-          id: `${opening.id}:${line.id}`,
-          name: `${opening.name}: ${line.name}`,
-          eco: line.eco ?? opening.eco,
-          moves: line.moves,
-        });
-      }
-    } else {
-      items.push({
-        id: opening.id,
-        name: opening.name,
-        eco: opening.eco,
-        moves: opening.moves ?? [],
-      });
-    }
-  }
-
-  return items;
+function buildLibraryItems(source: OpeningEntry[]): LibraryItem[] {
+  return source.map((entry) => ({
+    id: entry.id,
+    name: entry.name,
+    eco: entry.eco,
+    moves: entry.moves,
+  }));
 }
 
-const libraryItems: LibraryItem[] = buildLibraryItems(openings);
+const libraryItems: LibraryItem[] = buildLibraryItems(allOpenings);
 const libraryItemsById = new Map(libraryItems.map((o) => [o.id, o]));
 
 function loadRecentOpeningIds(): string[] {
@@ -161,7 +150,12 @@ export function LibraryLayout() {
   const learnActionBarRef = useRef<HTMLDivElement>(null);
 
   const learnOrderedUnits = useMemo(
-    () => (learnSelectedOpening ? getOrderedCourseUnits(learnSelectedOpening) : []),
+    () =>
+      learnSelectedOpening
+        ? getOrderedCourseUnits(learnSelectedOpening, 2, {
+            minMoves: MIN_MOVES_FOR_LEARN,
+          })
+        : [],
     [learnSelectedOpening]
   );
 
@@ -273,7 +267,7 @@ export function LibraryLayout() {
   }, [learnJustClearedUnitId]);
 
   const learnVisibleOpenings = useMemo(() => {
-    const sorted = [...openings].sort((a, b) =>
+    const sorted = [...learnOpenings].sort((a, b) =>
       sortByEcoThenName(
         { eco: a.eco, name: a.name },
         { eco: b.eco, name: b.name }
@@ -297,14 +291,14 @@ export function LibraryLayout() {
 
   const practicePool = useMemo(() => {
     const cleared = new Set(getAllClearedUnitIds());
-    return openings.flatMap((o) => getOrderedCourseUnits(o)).filter((u) =>
+    return learnOpenings.flatMap((o) => getOrderedCourseUnits(o)).filter((u) =>
       cleared.has(getCourseUnitId(u))
     );
   }, [learnProgressVersion]);
 
   const practiceAllowedOpeningIds = useMemo(() => {
     if (practiceOpeningFilter == null) return null;
-    return getOpeningIdsForPracticeFilter(practiceOpeningFilter, openings);
+    return getOpeningIdsForPracticeFilter(practiceOpeningFilter, learnOpenings);
   }, [practiceOpeningFilter]);
 
   const practiceFilteredPool = useMemo(() => {
@@ -319,7 +313,7 @@ export function LibraryLayout() {
 
   const practiceOpeningsWithCleared = useMemo(() => {
     const ids = new Set(practicePool.map((u) => u.openingId));
-    return openings.filter((o) => ids.has(o.id));
+    return learnOpenings.filter((o) => ids.has(o.id));
   }, [practicePool]);
 
   const practiceSide: PracticeSide = practiceColorFilter ?? "white";

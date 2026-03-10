@@ -71,7 +71,7 @@ export function AnalysisPage() {
   const clientRef = useRef<StockfishClient | null>(null);
   const analysisStopRef = useRef<(() => void) | null>(null);
   const [lastInfo, setLastInfo] = useState<StockfishInfo | null>(null);
-  const [bestMoveUci, setBestMoveUci] = useState<string | null>(null);
+  const [_bestMoveUci, setBestMoveUci] = useState<string | null>(null);
   const [engineStatus, setEngineStatus] = useState<string>("Idle");
   const [topLines, setTopLines] = useState<StockfishPvLine[] | null>(null);
 
@@ -106,10 +106,25 @@ export function AnalysisPage() {
           return;
         }
         analysisStopRef.current = analysis.stop;
+        const linesByPv = new Map<number, StockfishInfo>();
         const offInfo = analysis.onInfo((info) => {
-          if (!info.multipv || info.multipv === 1) {
-            setLastInfo(info);
-          }
+          const pvIdx = info.multipv && Number.isFinite(info.multipv) ? info.multipv : 1;
+          linesByPv.set(pvIdx, info);
+          if (pvIdx === 1) setLastInfo(info);
+          const sorted: StockfishPvLine[] = Array.from(linesByPv.entries())
+            .sort((a, b) => a[0] - b[0])
+            .map(([multipv, i]) => ({
+              multipv,
+              depth: i.depth,
+              seldepth: i.seldepth,
+              nodes: i.nodes,
+              nps: i.nps,
+              timeMs: i.timeMs,
+              score: i.score ?? undefined,
+              pv: i.pv ?? [],
+              raw: i.raw,
+            }));
+          setTopLines(sorted);
         });
         const { bestMove, lastLines } = await analysis.done;
         offInfo();
@@ -163,11 +178,16 @@ export function AnalysisPage() {
     return topLines
       .filter((l) => l.pv && l.pv.length && l.score)
       .map((l) => {
-        const sanMoves = uciPvToSan(fen, [l.pv[0]]);
-        const sanFirst = sanMoves[0] ?? l.pv[0];
+        let moveSan: string;
+        try {
+          const sanMoves = uciPvToSan(fen, [l.pv[0]]);
+          moveSan = sanMoves[0] ?? l.pv[0];
+        } catch {
+          moveSan = l.pv[0];
+        }
         return {
           multipv: l.multipv,
-          moveSan: sanFirst,
+          moveSan,
           score: l.score ?? null,
         };
       });
@@ -190,13 +210,15 @@ export function AnalysisPage() {
             onChange={(e) => {
               const nextText = e.target.value;
               setGameText(nextText);
+              const nextParsed = parseGameInput(nextText);
+              setMoves(nextParsed.movesSan);
               setIsPlaying(false);
               setLastInfo(null);
               setBestMoveUci(null);
               setEngineStatus("Idle");
               setReport(null);
               setReportStatus("No report generated");
-              const nextMovesLen = parseGameInput(nextText).movesSan.length;
+              const nextMovesLen = nextParsed.movesSan.length;
               setCurrentIndex((idx) => Math.min(idx, nextMovesLen));
             }}
             rows={12}
@@ -241,12 +263,10 @@ export function AnalysisPage() {
               setEngineStatus("Idle");
               setReport(null);
               setReportStatus("No report generated");
-              setMoves((prev) => {
-                const idx = Math.min(currentIndex, prev.length);
-                const next = [...prev.slice(0, idx), san];
-                setCurrentIndex(next.length);
-                return next;
-              });
+              const idx = Math.min(safeIndex, moves.length);
+              const nextMoves = [...moves.slice(0, idx), san];
+              setMoves(nextMoves);
+              setCurrentIndex(nextMoves.length);
             }}
           />
         </div>
