@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import openingsData from "../data/openings.json";
-import type { Opening, CourseUnit, LearnUnitProgress, PracticeSide } from "../types";
+import type { Opening, LearnUnitProgress, PracticeSide } from "../types";
 import { OpeningsMenu } from "./OpeningsMenu";
 import { MoveControls } from "./MoveControls";
 import { BoardView, formatMoveList, type ViewMode } from "./BoardView";
@@ -14,6 +14,14 @@ import {
   saveProgressByUnitId,
   getAllClearedUnitIds,
 } from "../lib/learnProgress";
+import { getPositionAfterMoves } from "../lib/chess";
+import {
+  getAllowedMovesAtPosition,
+  isTerminalPosition,
+  pickComputerMove,
+} from "../lib/practiceTree";
+
+const PRACTICE_OPPONENT_MOVE_DELAY_MS = 700;
 
 const RECENT_OPENINGS_KEY = "chessical_recent_openings";
 const RECENT_OPENINGS_MAX = 10;
@@ -287,10 +295,12 @@ export function LibraryLayout() {
     );
   }, [searchQuery]);
 
-  // Practice tab: only cleared units, filter by opening and color
-  const [practiceUnit, setPracticeUnit] = useState<CourseUnit | null>(null);
+  // Practice tab: organic practice — game moves (null = session not started)
+  const [practiceGameMoves, setPracticeGameMoves] = useState<string[] | null>(null);
   const [practiceOpeningFilter, setPracticeOpeningFilter] = useState<string | null>(null);
   const [practiceColorFilter, setPracticeColorFilter] = useState<PracticeSide | null>(null);
+  const [practiceLineJustCompleted, setPracticeLineJustCompleted] = useState(false);
+  const practicePendingComputerMoveRef = useRef(false);
 
   const practicePool = useMemo(() => {
     const cleared = new Set(getAllClearedUnitIds());
@@ -312,23 +322,102 @@ export function LibraryLayout() {
     return openings.filter((o) => ids.has(o.id));
   }, [practicePool]);
 
-  const startRandomPracticeGame = useCallback(() => {
+  const practiceSide: PracticeSide = practiceColorFilter ?? "white";
+
+  const startPractice = useCallback(() => {
     if (practiceFilteredPool.length === 0) return;
-    const randomIndex = Math.floor(Math.random() * practiceFilteredPool.length);
-    setPracticeUnit(practiceFilteredPool[randomIndex]);
+    setPracticeGameMoves([]);
   }, [practiceFilteredPool]);
 
-  // Auto-show first board when opening Practice tab with a non-empty filtered pool
+  // When user is Black and game is at start, play first computer move (e.g. e4)
   useEffect(() => {
     if (
-      activeTab === "practice" &&
-      practiceFilteredPool.length > 0 &&
-      practiceUnit === null
+      practiceGameMoves?.length === 0 &&
+      practiceSide === "black" &&
+      practiceFilteredPool.length > 0
     ) {
-      const randomIndex = Math.floor(Math.random() * practiceFilteredPool.length);
-      setPracticeUnit(practiceFilteredPool[randomIndex]);
+      const startFen = getPositionAfterMoves([], 0).fen;
+      const computerMove = pickComputerMove(startFen, practiceFilteredPool, practiceSide);
+      if (computerMove != null) {
+        setPracticeGameMoves([computerMove]);
+      }
     }
-  }, [activeTab, practiceFilteredPool, practiceUnit]);
+  }, [practiceGameMoves?.length, practiceSide, practiceFilteredPool]);
+
+  const practiceFen = useMemo(() => {
+    const moves = practiceGameMoves ?? [];
+    return getPositionAfterMoves(moves, moves.length).fen;
+  }, [practiceGameMoves]);
+
+  const practiceSideToMove = useMemo(
+    () => (practiceFen.includes(" w ") ? "w" : "b"),
+    [practiceFen]
+  );
+
+  const practiceAllowedMoves = useMemo(() => {
+    if (practiceGameMoves === null || practiceFilteredPool.length === 0) return [];
+    return getAllowedMovesAtPosition(
+      practiceFen,
+      practiceFilteredPool,
+      practiceSideToMove
+    );
+  }, [practiceGameMoves, practiceFilteredPool, practiceFen, practiceSideToMove]);
+
+  const handlePracticeValidMove = useCallback(
+    (san: string) => {
+      setPracticeLineJustCompleted(false);
+      setPracticeGameMoves((prev) => {
+        if (prev === null) return null;
+        const next = [...prev, san];
+        const fenAfterUser = getPositionAfterMoves(next, next.length).fen;
+        if (isTerminalPosition(fenAfterUser, practiceFilteredPool)) {
+          setPracticeLineJustCompleted(true);
+          return [];
+        }
+        practicePendingComputerMoveRef.current = true;
+        return next;
+      });
+    },
+    [practiceFilteredPool, practiceSide]
+  );
+
+  // After user moves, play computer move following a delay so piece animation runs
+  useEffect(() => {
+    if (practiceGameMoves === null || practiceFilteredPool.length === 0) return;
+    if (practiceGameMoves.length === 0) return;
+    const isComputerTurn =
+      (practiceSide === "white" && practiceGameMoves.length % 2 === 1) ||
+      (practiceSide === "black" && practiceGameMoves.length % 2 === 0);
+    if (!isComputerTurn || !practicePendingComputerMoveRef.current) return;
+    practicePendingComputerMoveRef.current = false;
+    const id = setTimeout(() => {
+      const fen = getPositionAfterMoves(
+        practiceGameMoves,
+        practiceGameMoves.length
+      ).fen;
+      const computerMove = pickComputerMove(
+        fen,
+        practiceFilteredPool,
+        practiceSide
+      );
+      if (computerMove == null) return;
+      setPracticeGameMoves((prev) => {
+        if (prev === null) return null;
+        const next = [...prev, computerMove];
+        const fenAfter = getPositionAfterMoves(next, next.length).fen;
+        if (isTerminalPosition(fenAfter, practiceFilteredPool)) {
+          setPracticeLineJustCompleted(true);
+          return [];
+        }
+        return next;
+      });
+    }, PRACTICE_OPPONENT_MOVE_DELAY_MS);
+    return () => clearTimeout(id);
+  }, [
+    practiceGameMoves,
+    practiceSide,
+    practiceFilteredPool,
+  ]);
 
   // Menu behaviour changes per tab
   const handleSelectFromMenu = useCallback(
@@ -367,12 +456,14 @@ export function LibraryLayout() {
           <div className="practice-sidebar">
             <h2 className="menu-title">Practice</h2>
             <p className="practice-description">
-              Practice cleared lines only. Filter by opening and color, then pick a board or
-              choose random.
+              Practice cleared lines. Filter by opening and color, then start a game. The
+              computer will play moves that keep the game in your studied lines; you may
+              branch into any line you&apos;ve cleared. When a line is completed, the board
+              resets.
             </p>
             {practicePool.length === 0 ? (
               <p className="practice-empty">
-                No lines cleared yet. Complete lines in the Learn tab to unlock practice boards.
+                No lines cleared yet. Complete lines in the Learn tab to unlock practice.
               </p>
             ) : (
               <>
@@ -411,38 +502,34 @@ export function LibraryLayout() {
                 </div>
                 <button
                   type="button"
-                  onClick={startRandomPracticeGame}
+                  onClick={startPractice}
                   disabled={practiceFilteredPool.length === 0}
                 >
-                  Random from filtered
+                  Start practice
                 </button>
+                {practiceGameMoves !== null && (
+                  <button
+                    type="button"
+                    className="practice-new-game"
+                    onClick={() => {
+                      setPracticeLineJustCompleted(false);
+                      setPracticeGameMoves([]);
+                    }}
+                  >
+                    New game
+                  </button>
+                )}
                 <ul className="practice-unit-list" aria-label="Cleared lines">
                   {practiceFilteredPool.map((u) => (
-                    <li key={getCourseUnitId(u)}>
-                      <button
-                        type="button"
-                        className={
-                          practiceUnit && getCourseUnitId(practiceUnit) === getCourseUnitId(u)
-                            ? "active"
-                            : ""
-                        }
-                        onClick={() => setPracticeUnit(u)}
-                      >
-                        {u.displayName} ({u.color})
-                      </button>
-                    </li>
+                    <li key={getCourseUnitId(u)}>{u.displayName} ({u.color})</li>
                   ))}
                 </ul>
-                {practiceUnit && (
+                {practiceGameMoves !== null && (
                   <div className="practice-opening-meta">
-                    <div className="practice-opening-name">{practiceUnit.displayName}</div>
-                    {practiceUnit.eco && (
-                      <div className="practice-opening-eco">ECO {practiceUnit.eco}</div>
-                    )}
                     <div className="practice-opening-side">
                       You are playing as{" "}
                       <strong>
-                        {practiceUnit.color === "white" ? "White" : "Black"}
+                        {practiceSide === "white" ? "White" : "Black"}
                       </strong>
                       .
                     </div>
@@ -506,7 +593,9 @@ export function LibraryLayout() {
                   onCorrectMove={handleLearnCorrectMove}
                   onLineCleared={handleLearnLineCleared}
                 />
-                {(learnUnitProgress?.stage === "arrows" || learnJustClearedUnitId) && (
+                {(learnUnitProgress?.stage === "arrows" ||
+                  learnJustClearedUnitId ||
+                  learnPendingNoArrows) && (
                   <div className="learn-action-bar" ref={learnActionBarRef}>
                     {learnUnitProgress?.stage === "arrows" ? (
                       <button
@@ -554,21 +643,30 @@ export function LibraryLayout() {
 
         {activeTab === "practice" && (
           <>
-            {practiceUnit ? (
-              <BoardView
-                key={getCourseUnitId(practiceUnit)}
-                moves={practiceUnit.moves}
-                openingName={practiceUnit.displayName}
-                mode="practice"
-                practiceSide={practiceUnit.color}
-                hideStepButtons
-              />
+            {practiceGameMoves !== null && practiceFilteredPool.length > 0 ? (
+              <div className="practice-main-wrap">
+                {practiceLineJustCompleted && practiceGameMoves.length === 0 && (
+                  <p className="practice-line-complete" role="status">
+                    Line complete! Make a move to start the next game.
+                  </p>
+                )}
+                <BoardView
+                  key="organic-practice"
+                  moves={practiceGameMoves}
+                  openingName="Practice"
+                  mode="practice"
+                  practiceSide={practiceSide}
+                  hideStepButtons
+                  allowedMoves={practiceAllowedMoves}
+                  onValidMove={handlePracticeValidMove}
+                />
+              </div>
             ) : (
               <div className="placeholder">
                 <p>
                   {practiceFilteredPool.length === 0
                     ? "No practice boards match your filters. Clear lines in Learn or change filters."
-                    : "Pick a line from the list or click Random from filtered."}
+                    : "Click Start practice to begin. Filter by opening and color above."}
                 </p>
               </div>
             )}
@@ -667,13 +765,13 @@ export function LibraryLayout() {
         </aside>
       )}
 
-      {activeTab === "practice" && practiceUnit && (
+      {activeTab === "practice" && practiceGameMoves !== null && (
         <aside className="right-sidebar">
           <div className="mode-controls">
             <span className="mode-label">Practice</span>
             <p className="learn-description">
-              Follow the moves of the chosen line from your side; incorrect moves will be
-              flagged so you can correct them.
+              Play moves that stay within your studied lines; the computer will respond in
+              kind. Wrong moves will be blocked.
             </p>
           </div>
         </aside>

@@ -41,6 +41,10 @@ interface BoardViewProps {
   onCorrectMove?: () => void;
   /** When true, hide Previous/Next in move controls (e.g. when playing from memory). */
   hideStepButtons?: boolean;
+  /** Organic practice: allowed moves at current position; when set, validate against this set instead of moves[currentIndex]. */
+  allowedMoves?: string[];
+  /** Organic practice: when set, on correct move call this instead of advancing index; parent appends move and opponent reply. */
+  onValidMove?: (san: string) => void;
 }
 
 export function formatMoveList(moves: string[]): string {
@@ -76,10 +80,13 @@ export function BoardView({
   onLineCleared,
   onCorrectMove,
   hideStepButtons = false,
+  allowedMoves,
+  onValidMove,
 }: BoardViewProps) {
   const [internalIndex, setInternalIndex] = useState(0);
   const [internalPlaying, setInternalPlaying] = useState(false);
-  const currentIndex = controlled?.currentIndex ?? internalIndex;
+  const isOrganicPractice = onValidMove != null;
+  const currentIndex = isOrganicPractice ? moves.length : (controlled?.currentIndex ?? internalIndex);
   const setCurrentIndexRaw = controlled?.onIndexChange ?? setInternalIndex;
   const isPlaying = controlled?.isPlaying ?? internalPlaying;
   const setIsPlaying = controlled ? () => { /* parent owns state */ } : setInternalPlaying;
@@ -108,7 +115,7 @@ export function BoardView({
     ((practiceSide === "white" && currentIndex % 2 === 0) ||
       (practiceSide === "black" && currentIndex % 2 === 1));
   const isOpponentTurn =
-    isPractice && !isPlayerTurn && currentIndex < maxIndex;
+    isPractice && !isPlayerTurn && currentIndex < maxIndex && !isOrganicPractice;
 
   // Reset to start when opening changes
   useEffect(() => {
@@ -211,6 +218,18 @@ export function BoardView({
         setPracticeError("Illegal move.");
         return false;
       }
+
+      if (isOrganicPractice && allowedMoves != null && onValidMove != null) {
+        if (!allowedMoves.includes(san)) {
+          setPracticeError("Not in your studied lines.");
+          onWrongMove?.();
+          return false;
+        }
+        onCorrectMove?.();
+        onValidMove(san);
+        return true;
+      }
+
       const expected = moves[currentIndex];
       if (san !== expected) {
         setPracticeError(`Wrong move. The opening plays ${expected}.`);
@@ -226,7 +245,19 @@ export function BoardView({
       }
       return true;
     },
-    [isPractice, isPlayerTurn, fen, moves, currentIndex, onWrongMove, onLineCleared, onCorrectMove]
+    [
+      isPractice,
+      isPlayerTurn,
+      fen,
+      moves,
+      currentIndex,
+      onWrongMove,
+      onLineCleared,
+      onCorrectMove,
+      isOrganicPractice,
+      allowedMoves,
+      onValidMove,
+    ]
   );
 
   const canDragPiece = useCallback(
@@ -260,6 +291,7 @@ export function BoardView({
   const showPlayButton = !isPractice;
 
   if (moves.length === 0) {
+    const emptyAllowDragging = isPractice && isPlayerTurn;
     return (
       <div className="board-view empty">
         {openingName && (
@@ -269,9 +301,15 @@ export function BoardView({
           <Chessboard
             options={{
               position: fen,
-              allowDragging: false,
+              allowDragging: emptyAllowDragging,
               showNotation: true,
               boardOrientation,
+              ...(emptyAllowDragging && {
+                onPieceDrop,
+                canDragPiece,
+                draggingPieceStyle: { transform: "scale(1)" },
+                dropSquareStyle: { boxShadow: "none" },
+              }),
             }}
           />
         </div>
@@ -310,7 +348,7 @@ export function BoardView({
           {positionResult.error}
         </p>
       )}
-      {isPractice && currentIndex >= maxIndex && maxIndex > 0 && (
+      {isPractice && !isOrganicPractice && currentIndex >= maxIndex && maxIndex > 0 && (
         <p className="practice-complete" role="status">
           Opening complete.
         </p>
