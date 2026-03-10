@@ -2,6 +2,10 @@
 
 Chessical is a **Vite + React** app packaged as a **Tauri** desktop application for **macOS + Windows**.
 
+## License
+
+Licensed under **GPL-3.0**. See `LICENSE`.
+
 ## Development
 
 Install deps:

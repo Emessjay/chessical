@@ -1,5 +1,4 @@
-import engineJsUrl from "stockfish/bin/stockfish-18-lite-single.js?url";
-import engineWasmUrl from "stockfish/bin/stockfish-18-lite-single.wasm?url";
+import engineJsUrl from "stockfish/bin/stockfish-18-asm.js?url";
 
 export type StockfishScore =
   | { type: "cp"; value: number }
@@ -101,8 +100,9 @@ export class StockfishClient {
   private initError: Error | null = null;
 
   constructor() {
-    const workerUrl = `${engineJsUrl}#${encodeURIComponent(engineWasmUrl)},worker`;
-    this.worker = new Worker(workerUrl);
+    // Use the ASM-JS engine build here (no .wasm fetch), because some desktop webviews
+    // reject the engine's `#...,worker` URL scheme used to pass the wasm path.
+    this.worker = new Worker(engineJsUrl);
     this.worker.onmessage = (ev: MessageEvent<string>) => {
       const line = String(ev.data ?? "");
       for (const cb of this.listeners) cb(line);
