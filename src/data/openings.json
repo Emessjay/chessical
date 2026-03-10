@@ -23,6 +23,36 @@
         "moves": ["e4", "c5", "Nf3", "d6", "d4", "cxd4", "Nxd4", "Nf6", "Nc3", "a6"]
       },
       {
+        "id": "najdorf",
+        "name": "Najdorf Variation",
+        "eco": "B90",
+        "moves": ["e4", "c5", "Nf3", "d6", "d4", "cxd4", "Nxd4", "Nf6", "Nc3", "a6", "Bg5", "e6", "Qd2", "h6", "Bf4", "Nbd7"]
+      },
+      {
+        "id": "dragon",
+        "name": "Dragon Variation",
+        "eco": "B70",
+        "moves": ["e4", "c5", "Nf3", "d6", "d4", "cxd4", "Nxd4", "Nf6", "Nc3", "g6", "Be3", "Bg7", "f3", "Nc6", "Qd2", "O-O"]
+      },
+      {
+        "id": "scheveningen",
+        "name": "Scheveningen Variation",
+        "eco": "B80",
+        "moves": ["e4", "c5", "Nf3", "d6", "d4", "cxd4", "Nxd4", "Nf6", "Nc3", "e6", "Be3", "Be7", "f4", "O-O", "Qf3", "Nc6"]
+      },
+      {
+        "id": "accelerated-dragon",
+        "name": "Accelerated Dragon",
+        "eco": "B34",
+        "moves": ["e4", "c5", "Nf3", "Nc6", "d4", "cxd4", "Nxd4", "g6", "Nc3", "Bg7", "Be3", "Nf6", "Bc4", "O-O"]
+      },
+      {
+        "id": "taimanov",
+        "name": "Taimanov Variation",
+        "eco": "B46",
+        "moves": ["e4", "c5", "Nf3", "e6", "d4", "cxd4", "Nxd4", "Nc6", "Nc3", "Qc7", "Be3", "a6", "Be2", "Nf6"]
+      },
+      {
         "id": "closed",
         "name": "Closed Sicilian",
         "eco": "B23",
@@ -109,10 +139,198 @@
         "moves": ["d4", "d5", "c4", "e6", "Nc3", "Nf6", "Bg5", "Be7", "e3", "O-O"]
       },
       {
+        "id": "tartakower",
+        "name": "Tartakower Variation",
+        "eco": "D58",
+        "moves": ["d4", "d5", "c4", "e6", "Nc3", "Nf6", "Bg5", "Be7", "e3", "O-O", "Nf3", "h6", "Bh4", "b6", "cxd5", "Nxd5", "Bxe7", "Qxe7"]
+      },
+      {
+        "id": "lasker",
+        "name": "Lasker Defense",
+        "eco": "D56",
+        "moves": ["d4", "d5", "c4", "e6", "Nc3", "Nf6", "Bg5", "Be7", "e3", "O-O", "Nf3", "h6", "Bh4", "Ne4", "Bxe7", "Qxe7", "cxd5", "Nxc3"]
+      },
+      {
+        "id": "semi-slav",
+        "name": "Semi-Slav Defense",
+        "eco": "D43",
+        "moves": ["d4", "d5", "c4", "e6", "Nc3", "Nf6", "Nf3", "c6", "e3", "Nbd7", "Bd3", "Bd6", "O-O", "O-O"]
+      },
+      {
+        "id": "ragozin",
+        "name": "Ragozin Variation",
+        "eco": "D38",
+        "moves": ["d4", "d5", "c4", "e6", "Nc3", "Nf6", "Nf3", "Bb4", "Bg5", "dxc4", "e4", "c5", "Bxc4", "cxd4", "Nxd4", "Nc6"]
+      },
+      {
         "id": "accepted",
         "name": "Queen's Gambit Accepted",
         "eco": "D20",
         "moves": ["d4", "d5", "c4", "dxc4", "e4", "e5", "Nf3", "exd4", "Bxc4", "Nc6"]
+      }
+    ]
+  },
+  {
+    "id": "kings-indian",
+    "name": "King's Indian Defense",
+    "eco": "E90",
+    "lines": [
+      {
+        "id": "classical",
+        "name": "Classical Variation",
+        "eco": "E92",
+        "moves": ["d4", "Nf6", "c4", "g6", "Nc3", "Bg7", "e4", "d6", "Nf3", "O-O", "Be2", "e5", "O-O", "Nc6", "d5", "Ne7"]
+      },
+      {
+        "id": "samisch",
+        "name": "Sämisch Variation",
+        "eco": "E80",
+        "moves": ["d4", "Nf6", "c4", "g6", "Nc3", "Bg7", "e4", "d6", "f3", "O-O", "Be3", "e5", "d5", "Nbd7", "Qd2", "c6"]
+      },
+      {
+        "id": "fianchetto",
+        "name": "Fianchetto Variation",
+        "eco": "E62",
+        "moves": ["d4", "Nf6", "c4", "g6", "Nf3", "Bg7", "g3", "O-O", "Bg2", "d6", "Nc3", "Nc6", "O-O", "e5"]
+      }
+    ]
+  },
+  {
+    "id": "queens-indian",
+    "name": "Queen's Indian Defense",
+    "eco": "E12",
+    "lines": [
+      {
+        "id": "main",
+        "name": "Main line",
+        "eco": "E15",
+        "moves": ["d4", "Nf6", "c4", "e6", "Nf3", "b6", "g3", "Ba6", "b3", "Bb4", "Bd2", "Be7", "Bg2", "O-O", "O-O", "c6"]
+      },
+      {
+        "id": "nimzowitsch",
+        "name": "Nimzowitsch Variation",
+        "eco": "E12",
+        "moves": ["d4", "Nf6", "c4", "e6", "Nf3", "b6", "Nc3", "Bb7", "Bg5", "Bb4", "e3", "Ne4", "Bf4", "Bxc3", "bxc3", "Nc6"]
+      }
+    ]
+  },
+  {
+    "id": "nimzo-indian",
+    "name": "Nimzo-Indian Defense",
+    "eco": "E20",
+    "lines": [
+      {
+        "id": "classical",
+        "name": "Classical Variation",
+        "eco": "E41",
+        "moves": ["d4", "Nf6", "c4", "e6", "Nc3", "Bb4", "e3", "O-O", "Bd3", "d5", "Nf3", "c5", "O-O", "Nc6", "a3", "Bxc3", "bxc3", "dxc4", "Bxc4"]
+      },
+      {
+        "id": "rubinstein",
+        "name": "Rubinstein Variation",
+        "eco": "E49",
+        "moves": ["d4", "Nf6", "c4", "e6", "Nc3", "Bb4", "e3", "O-O", "Bd3", "d5", "Nf3", "c5", "O-O", "dxc4", "Bxc4", "Nc6", "Bb3", "a6"]
+      },
+      {
+        "id": "samisch",
+        "name": "Sämisch Variation",
+        "eco": "E24",
+        "moves": ["d4", "Nf6", "c4", "e6", "Nc3", "Bb4", "a3", "Bxc3", "bxc3", "O-O", "e3", "c5", "Bd3", "Nc6", "Ne2", "b6", "O-O", "Ba6"]
+      }
+    ]
+  },
+  {
+    "id": "gruenfeld",
+    "name": "Grünfeld Defense",
+    "eco": "D70",
+    "lines": [
+      {
+        "id": "exchange",
+        "name": "Exchange Variation",
+        "eco": "D86",
+        "moves": ["d4", "Nf6", "c4", "g6", "Nc3", "d5", "cxd5", "Nxd5", "e4", "Nxc3", "bxc3", "Bg7", "Nf3", "c5", "Rb1", "O-O", "Be2", "Nc6"]
+      },
+      {
+        "id": "russian",
+        "name": "Russian Variation",
+        "eco": "D97",
+        "moves": ["d4", "Nf6", "c4", "g6", "Nc3", "d5", "Nf3", "Bg7", "Qb3", "dxc4", "Qxc4", "O-O", "e4", "Na6", "Be2", "c5", "d5", "e6"]
+      }
+    ]
+  },
+  {
+    "id": "benoni",
+    "name": "Benoni Defense",
+    "eco": "A56",
+    "lines": [
+      {
+        "id": "modern",
+        "name": "Modern Benoni",
+        "eco": "A65",
+        "moves": ["d4", "Nf6", "c4", "c5", "d5", "e6", "Nc3", "exd5", "cxd5", "d6", "Nf3", "g6", "e4", "Bg7", "Be2", "O-O", "O-O", "Na6"]
+      },
+      {
+        "id": "czech",
+        "name": "Czech Benoni",
+        "eco": "A56",
+        "moves": ["d4", "Nf6", "c4", "c5", "d5", "e5", "Nc3", "d6", "e4", "Be7", "Nf3", "O-O", "Be2", "Ne8", "O-O", "g6", "Bf4", "Nc7"]
+      }
+    ]
+  },
+  {
+    "id": "benko",
+    "name": "Benko Gambit",
+    "eco": "A57",
+    "lines": [
+      {
+        "id": "full",
+        "name": "Full Benko",
+        "eco": "A59",
+        "moves": ["d4", "Nf6", "c4", "c5", "d5", "b5", "cxb5", "a6", "bxa6", "Bxa6", "Nc3", "d6", "Nf3", "g6", "e4", "Bxf1", "Kxf1", "Bg7"]
+      },
+      {
+        "id": "declined",
+        "name": "Benko Declined (4.Nf3)",
+        "eco": "A57",
+        "moves": ["d4", "Nf6", "c4", "c5", "d5", "b5", "Nf3", "g6", "cxb5", "a6", "bxa6", "Bxa6", "Nc3", "d6", "e4", "Bg7"]
+      }
+    ]
+  },
+  {
+    "id": "old-indian",
+    "name": "Old Indian Defense",
+    "eco": "A53",
+    "lines": [
+      {
+        "id": "main",
+        "name": "Main line",
+        "eco": "A54",
+        "moves": ["d4", "Nf6", "c4", "d6", "Nc3", "e5", "Nf3", "Nbd7", "e4", "Be7", "Be2", "O-O", "O-O", "c6", "Be3", "exd4", "Nxd4", "Re8"]
+      },
+      {
+        "id": "janowski",
+        "name": "Janowski Variation",
+        "eco": "A53",
+        "moves": ["d4", "Nf6", "c4", "d6", "Nc3", "Bf5", "f3", "e5", "e4", "Be6", "d5", "c6", "Nge2", "Nbd7", "Be3", "Be7"]
+      }
+    ]
+  },
+  {
+    "id": "bogo-indian",
+    "name": "Bogo-Indian Defense",
+    "eco": "E11",
+    "lines": [
+      {
+        "id": "main",
+        "name": "Main line",
+        "eco": "E11",
+        "moves": ["d4", "Nf6", "c4", "e6", "Nf3", "Bb4", "Bd2", "Qe7", "g3", "Nc6", "Nc3", "Bxc3", "Bxc3", "d6", "Bg2", "e5", "O-O", "O-O"]
+      },
+      {
+        "id": "exchange",
+        "name": "Exchange Variation",
+        "eco": "E11",
+        "moves": ["d4", "Nf6", "c4", "e6", "Nf3", "Bb4", "Bd2", "Bxd2", "Qxd2", "O-O", "Nc3", "d5", "cxd5", "exd5", "Bg5", "c6", "e3", "Nbd7"]
       }
     ]
   },

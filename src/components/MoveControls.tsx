@@ -5,6 +5,8 @@ interface MoveControlsProps {
   onNext: () => void;
   isPlaying?: boolean;
   onPlayPause?: () => void;
+  /** When true, hide Previous/Next (e.g. when playing from memory). */
+  hideStepButtons?: boolean;
 }
 
 export function MoveControls({
@@ -14,20 +16,25 @@ export function MoveControls({
   onNext,
   isPlaying = false,
   onPlayPause,
+  hideStepButtons = false,
 }: MoveControlsProps) {
   const atStart = currentIndex <= 0;
   const atEnd = maxIndex <= 0 || currentIndex >= maxIndex;
+  const showAnyButton = !hideStepButtons || onPlayPause;
+  if (!showAnyButton) return null;
 
   return (
     <div className="move-controls">
-      <button
-        type="button"
-        onClick={onPrevious}
-        disabled={atStart}
-        aria-label="Previous move"
-      >
-        Previous
-      </button>
+      {!hideStepButtons && (
+        <button
+          type="button"
+          onClick={onPrevious}
+          disabled={atStart}
+          aria-label="Previous move"
+        >
+          Previous
+        </button>
+      )}
       {onPlayPause && (
         <button
           type="button"
@@ -38,14 +45,16 @@ export function MoveControls({
           {isPlaying ? "Pause" : "Play"}
         </button>
       )}
-      <button
-        type="button"
-        onClick={onNext}
-        disabled={atEnd}
-        aria-label="Next move"
-      >
-        Next
-      </button>
+      {!hideStepButtons && (
+        <button
+          type="button"
+          onClick={onNext}
+          disabled={atEnd}
+          aria-label="Next move"
+        >
+          Next
+        </button>
+      )}
     </div>
   );
 }

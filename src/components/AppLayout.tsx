@@ -24,6 +24,12 @@ export function AppLayout() {
           >
             Practice
           </NavLink>
+          <NavLink
+            to="/settings"
+            className={({ isActive }) => `app-nav-link ${isActive ? "active" : ""}`}
+          >
+            Settings
+          </NavLink>
           <Link to="/account" className="app-nav-link">
             Account
           </Link>

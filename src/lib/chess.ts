@@ -88,3 +88,29 @@ export function getLastMove(
   }
   return null;
 }
+
+/**
+ * Returns the from/to squares of the move at moves[index] (the next move to play).
+ * Used to draw a hint arrow. Returns null if index is out of range or the move cannot be applied.
+ */
+export function getMoveSquares(
+  moves: string[],
+  index: number
+): LastMove | null {
+  if (index < 0 || index >= moves.length) return null;
+  const chess = new Chess();
+  for (let i = 0; i < index; i++) {
+    try {
+      const result = chess.move(moves[i], { strict: true });
+      if (!result) return null;
+    } catch {
+      return null;
+    }
+  }
+  try {
+    const result = chess.move(moves[index], { strict: true });
+    return result ? { from: result.from, to: result.to } : null;
+  } catch {
+    return null;
+  }
+}

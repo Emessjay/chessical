@@ -1,17 +1,19 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Chessboard } from "react-chessboard";
 import {
   getPositionAfterMoves,
   getLastMove,
   tryMoveFromSquares,
+  getMoveSquares,
 } from "../lib/chess";
 import { MoveControls } from "./MoveControls";
+import type { PracticeSide } from "../types";
 
 const PLAY_INTERVAL_MS = 1500;
 const OPPONENT_MOVE_DELAY_MS = 700;
 
 export type ViewMode = "view" | "practice";
-export type PracticeSide = "white" | "black";
+export type { PracticeSide };
 
 /** When set, parent renders move list and MoveControls (e.g. in a sidebar). */
 export interface BoardViewControlledProps {
@@ -29,6 +31,16 @@ interface BoardViewProps {
   showMoveList?: boolean;
   /** When provided, board is controlled and move list/controls are not rendered here. */
   controlled?: BoardViewControlledProps;
+  /** In practice mode: show hint arrow for the next move. */
+  showHintArrow?: boolean;
+  /** In practice mode: called when the user plays a wrong move (e.g. for no-arrows stage wrong count). */
+  onWrongMove?: () => void;
+  /** In practice mode: called when the user completes the line (reaches end of moves). */
+  onLineCleared?: () => void;
+  /** In practice mode: called when the user plays a correct move (e.g. to reset no-arrows wrong count). */
+  onCorrectMove?: () => void;
+  /** When true, hide Previous/Next in move controls (e.g. when playing from memory). */
+  hideStepButtons?: boolean;
 }
 
 export function formatMoveList(moves: string[]): string {
@@ -59,17 +71,35 @@ export function BoardView({
   practiceSide = "white",
   showMoveList = false,
   controlled,
+  showHintArrow = false,
+  onWrongMove,
+  onLineCleared,
+  onCorrectMove,
+  hideStepButtons = false,
 }: BoardViewProps) {
   const [internalIndex, setInternalIndex] = useState(0);
   const [internalPlaying, setInternalPlaying] = useState(false);
   const currentIndex = controlled?.currentIndex ?? internalIndex;
-  const setCurrentIndex = controlled?.onIndexChange ?? setInternalIndex;
+  const setCurrentIndexRaw = controlled?.onIndexChange ?? setInternalIndex;
   const isPlaying = controlled?.isPlaying ?? internalPlaying;
   const setIsPlaying = controlled ? () => { /* parent owns state */ } : setInternalPlaying;
   const [practiceError, setPracticeError] = useState<string | null>(null);
   const renderControlsHere = !controlled;
   const opponentTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoPlayOpponentRef = useRef(false);
+  const currentIndexRef = useRef(currentIndex);
+  currentIndexRef.current = currentIndex;
+  const setCurrentIndex = useCallback(
+    (valueOrUpdater: number | ((prev: number) => number)) => {
+      if (typeof valueOrUpdater === "function") {
+        const next = valueOrUpdater(currentIndexRef.current);
+        setCurrentIndexRaw(next);
+      } else {
+        setCurrentIndexRaw(valueOrUpdater);
+      }
+    },
+    [setCurrentIndexRaw]
+  );
   const maxIndex = moves.length;
 
   const isPractice = mode === "practice";
@@ -115,7 +145,13 @@ export function BoardView({
     autoPlayOpponentRef.current = false;
     setPracticeError(null);
     opponentTimeoutRef.current = setTimeout(() => {
-      setCurrentIndex((prev) => prev + 1);
+      setCurrentIndex((prev) => {
+        const next = prev + 1;
+        if (next >= moves.length) {
+          queueMicrotask(() => onLineCleared?.());
+        }
+        return next;
+      });
       opponentTimeoutRef.current = null;
     }, OPPONENT_MOVE_DELAY_MS);
     return () => {
@@ -124,7 +160,7 @@ export function BoardView({
         opponentTimeoutRef.current = null;
       }
     };
-  }, [isOpponentTurn]);
+  }, [isOpponentTurn, moves.length, onLineCleared]);
 
   const positionResult = getPositionAfterMoves(moves, currentIndex);
   const fen = positionResult.fen;
@@ -178,13 +214,19 @@ export function BoardView({
       const expected = moves[currentIndex];
       if (san !== expected) {
         setPracticeError(`Wrong move. The opening plays ${expected}.`);
+        onWrongMove?.();
         return false;
       }
+      onCorrectMove?.();
       autoPlayOpponentRef.current = true;
+      const nextIndex = currentIndex + 1;
       setCurrentIndex((prev) => prev + 1);
+      if (nextIndex >= moves.length) {
+        onLineCleared?.();
+      }
       return true;
     },
-    [isPractice, isPlayerTurn, fen, moves, currentIndex]
+    [isPractice, isPlayerTurn, fen, moves, currentIndex, onWrongMove, onLineCleared, onCorrectMove]
   );
 
   const canDragPiece = useCallback(
@@ -198,6 +240,20 @@ export function BoardView({
   );
 
   const moveListFormatted = formatMoveList(moves);
+
+  const hintArrows = useMemo(() => {
+    if (!showHintArrow || !isPlayerTurn || currentIndex >= maxIndex)
+      return undefined;
+    const sq = getMoveSquares(moves, currentIndex);
+    if (!sq) return undefined;
+    return [
+      {
+        startSquare: sq.from,
+        endSquare: sq.to,
+        color: "rgba(0, 100, 255, 0.6)",
+      },
+    ];
+  }, [showHintArrow, isPlayerTurn, currentIndex, maxIndex, moves]);
 
   const boardOrientation = isPractice && practiceSide === "black" ? "black" : "white";
   const allowDragging = isPractice && isPlayerTurn;
@@ -236,6 +292,7 @@ export function BoardView({
               onPrevious={onPrevious}
               onNext={onNext}
               onPlayPause={showPlayButton ? onPlayPause : undefined}
+              hideStepButtons={hideStepButtons}
             />
           </>
         )}
@@ -270,6 +327,7 @@ export function BoardView({
             canDragPiece,
             draggingPieceStyle: { transform: "scale(1)" },
             dropSquareStyle: { boxShadow: "none" },
+            ...(hintArrows != null && { arrows: hintArrows }),
           }}
         />
       </div>
@@ -298,6 +356,7 @@ export function BoardView({
           onNext={onNext}
           isPlaying={isPlaying}
           onPlayPause={showPlayButton ? onPlayPause : undefined}
+          hideStepButtons={hideStepButtons}
         />
       )}
     </div>

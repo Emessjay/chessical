@@ -1,16 +1,19 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import openingsData from "../data/openings.json";
-import type { Opening } from "../types";
+import type { Opening, CourseUnit, LearnUnitProgress, PracticeSide } from "../types";
 import { OpeningsMenu } from "./OpeningsMenu";
-import { LineSelector } from "./LineSelector";
 import { MoveControls } from "./MoveControls";
+import { BoardView, formatMoveList, type ViewMode } from "./BoardView";
 import {
-  BoardView,
-  formatMoveList,
-  type ViewMode,
-  type PracticeSide,
-} from "./BoardView";
+  getOrderedCourseUnits,
+  getCourseUnitId,
+} from "../lib/course";
+import {
+  loadProgressByUnitId,
+  saveProgressByUnitId,
+  getAllClearedUnitIds,
+} from "../lib/learnProgress";
 
 const RECENT_OPENINGS_KEY = "chessical_recent_openings";
 const RECENT_OPENINGS_MAX = 10;
@@ -59,17 +62,6 @@ function buildLibraryItems(source: Opening[]): LibraryItem[] {
 
 const libraryItems: LibraryItem[] = buildLibraryItems(openings);
 const libraryItemsById = new Map(libraryItems.map((o) => [o.id, o]));
-
-function getMovesAndName(opening: Opening, selectedLineId: string | null): {
-  moves: string[];
-  name: string;
-} {
-  if (opening.lines?.length) {
-    const line = opening.lines.find((l) => l.id === selectedLineId) ?? opening.lines[0];
-    return { moves: line.moves, name: `${opening.name}: ${line.name}` };
-  }
-  return { moves: opening.moves ?? [], name: opening.name };
-}
 
 function loadRecentOpeningIds(): string[] {
   try {
@@ -157,18 +149,127 @@ export function LibraryLayout() {
   const showPlayButton = mode === "view";
   const moveListFormatted = formatMoveList(libraryMoves);
 
-  // Learn tab state
+  // Learn tab: course flow
   const [learnSelectedOpening, setLearnSelectedOpening] = useState<Opening | null>(null);
-  const [learnSelectedLineId, setLearnSelectedLineId] = useState<string | null>(null);
-  const learnPracticeSide: PracticeSide = "white";
+  const [learnProgressVersion, setLearnProgressVersion] = useState(0);
+  const [learnUnitProgress, setLearnUnitProgress] = useState<LearnUnitProgress | null>(null);
+  /** True when user finished arrow stage and should click "Play from Memory" to start no-arrows. */
+  const [learnPendingNoArrows, setLearnPendingNoArrows] = useState(false);
+  /** Unit id we just cleared; show success panel with Next Line / Complete Opening until dismissed. */
+  const [learnJustClearedUnitId, setLearnJustClearedUnitId] = useState<string | null>(null);
+  const learnActionBarRef = useRef<HTMLDivElement>(null);
 
-  const { moves: learnMoves, name: learnDisplayName } = useMemo(
-    () =>
-      learnSelectedOpening
-        ? getMovesAndName(learnSelectedOpening, learnSelectedLineId)
-        : { moves: [], name: "" },
-    [learnSelectedOpening, learnSelectedLineId]
+  const learnOrderedUnits = useMemo(
+    () => (learnSelectedOpening ? getOrderedCourseUnits(learnSelectedOpening) : []),
+    [learnSelectedOpening]
   );
+
+  const learnNextUnit = useMemo(() => {
+    const cleared = getAllClearedUnitIds();
+    return learnOrderedUnits.find((u) => !cleared.includes(getCourseUnitId(u))) ?? null;
+  }, [learnOrderedUnits, learnProgressVersion]);
+
+  /** When just cleared, keep showing the cleared unit's board; otherwise show next unit to work on. */
+  const learnCurrentUnit =
+    learnJustClearedUnitId != null
+      ? learnOrderedUnits.find((u) => getCourseUnitId(u) === learnJustClearedUnitId) ?? learnNextUnit
+      : learnNextUnit;
+  const learnCurrentUnitId = learnCurrentUnit ? getCourseUnitId(learnCurrentUnit) : null;
+
+  useEffect(() => {
+    if (!learnCurrentUnitId) {
+      setLearnUnitProgress(null);
+      setLearnPendingNoArrows(false);
+      return;
+    }
+    setLearnUnitProgress(loadProgressByUnitId(learnCurrentUnitId));
+    setLearnPendingNoArrows(false);
+  }, [learnCurrentUnitId]);
+
+  const learnShowHintArrow = learnUnitProgress?.stage === "arrows";
+  const learnMoves = learnCurrentUnit?.moves ?? [];
+  const learnDisplayName = learnCurrentUnit
+    ? `${learnCurrentUnit.displayName} (${learnCurrentUnit.color})`
+    : "";
+
+  const handleLearnWrongMove = useCallback(() => {
+    if (!learnCurrentUnitId || learnUnitProgress?.stage !== "no-arrows") return;
+    const nextWrong = (learnUnitProgress.wrongCount ?? 0) + 1;
+    if (nextWrong >= 2) {
+      saveProgressByUnitId(learnCurrentUnitId, {
+        stage: "arrows",
+        wrongCount: 0,
+        cleared: false,
+      });
+      setLearnUnitProgress({ stage: "arrows", wrongCount: 0, cleared: false });
+      setLearnProgressVersion((v) => v + 1);
+    } else {
+      const next: LearnUnitProgress = {
+        ...learnUnitProgress,
+        wrongCount: nextWrong,
+      };
+      saveProgressByUnitId(learnCurrentUnitId, next);
+      setLearnUnitProgress(next);
+    }
+  }, [learnCurrentUnitId, learnUnitProgress]);
+
+  const handleLearnCorrectMove = useCallback(() => {
+    if (!learnCurrentUnitId || learnUnitProgress?.stage !== "no-arrows") return;
+    if ((learnUnitProgress.wrongCount ?? 0) === 0) return;
+    const next: LearnUnitProgress = {
+      ...learnUnitProgress,
+      wrongCount: 0,
+    };
+    saveProgressByUnitId(learnCurrentUnitId, next);
+    setLearnUnitProgress(next);
+  }, [learnCurrentUnitId, learnUnitProgress]);
+
+  const handleLearnLineCleared = useCallback(() => {
+    if (!learnCurrentUnitId || !learnUnitProgress) return;
+    if (learnUnitProgress.stage === "arrows") {
+      setLearnPendingNoArrows(true);
+    } else {
+      saveProgressByUnitId(learnCurrentUnitId, {
+        ...learnUnitProgress,
+        cleared: true,
+      });
+      setLearnUnitProgress({ ...learnUnitProgress, cleared: true });
+      setLearnProgressVersion((v) => v + 1);
+      setLearnJustClearedUnitId(learnCurrentUnitId);
+    }
+  }, [learnCurrentUnitId, learnUnitProgress]);
+
+  const handlePlayFromMemory = useCallback(() => {
+    if (!learnCurrentUnitId || !learnUnitProgress || learnUnitProgress.stage !== "arrows") return;
+    const next: LearnUnitProgress = {
+      stage: "no-arrows",
+      wrongCount: 0,
+      cleared: false,
+    };
+    saveProgressByUnitId(learnCurrentUnitId, next);
+    setLearnUnitProgress(next);
+    setLearnProgressVersion((v) => v + 1);
+    setLearnPendingNoArrows(false);
+  }, [learnCurrentUnitId, learnUnitProgress]);
+
+  const learnClearedUnitInfo = useMemo(() => {
+    if (!learnJustClearedUnitId || learnOrderedUnits.length === 0) return null;
+    const idx = learnOrderedUnits.findIndex((u) => getCourseUnitId(u) === learnJustClearedUnitId);
+    if (idx < 0) return null;
+    const unit = learnOrderedUnits[idx];
+    const isLastLine = idx === learnOrderedUnits.length - 1;
+    return {
+      displayName: unit.displayName,
+      isLastLine,
+    };
+  }, [learnJustClearedUnitId, learnOrderedUnits]);
+
+  /** When user just cleared a line, scroll the Next Line button into view. */
+  useEffect(() => {
+    if (learnJustClearedUnitId && learnActionBarRef.current) {
+      learnActionBarRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [learnJustClearedUnitId]);
 
   const learnVisibleOpenings = useMemo(() => {
     const sorted = [...openings].sort((a, b) =>
@@ -186,24 +287,48 @@ export function LibraryLayout() {
     );
   }, [searchQuery]);
 
-  // Practice tab state
-  const [practiceOpening, setPracticeOpening] = useState<LibraryItem | null>(null);
-  const [practiceSide, setPracticeSide] = useState<PracticeSide>("white");
+  // Practice tab: only cleared units, filter by opening and color
+  const [practiceUnit, setPracticeUnit] = useState<CourseUnit | null>(null);
+  const [practiceOpeningFilter, setPracticeOpeningFilter] = useState<string | null>(null);
+  const [practiceColorFilter, setPracticeColorFilter] = useState<PracticeSide | null>(null);
+
+  const practicePool = useMemo(() => {
+    const cleared = new Set(getAllClearedUnitIds());
+    return openings.flatMap((o) => getOrderedCourseUnits(o)).filter((u) =>
+      cleared.has(getCourseUnitId(u))
+    );
+  }, [learnProgressVersion]);
+
+  const practiceFilteredPool = useMemo(() => {
+    return practicePool.filter((u) => {
+      if (practiceOpeningFilter != null && u.openingId !== practiceOpeningFilter) return false;
+      if (practiceColorFilter != null && u.color !== practiceColorFilter) return false;
+      return true;
+    });
+  }, [practicePool, practiceOpeningFilter, practiceColorFilter]);
+
+  const practiceOpeningsWithCleared = useMemo(() => {
+    const ids = new Set(practicePool.map((u) => u.openingId));
+    return openings.filter((o) => ids.has(o.id));
+  }, [practicePool]);
 
   const startRandomPracticeGame = useCallback(() => {
-    if (libraryItems.length === 0) return;
-    const randomIndex = Math.floor(Math.random() * libraryItems.length);
-    const randomOpening = libraryItems[randomIndex];
-    const randomSide: PracticeSide = Math.random() < 0.5 ? "white" : "black";
-    setPracticeOpening(randomOpening);
-    setPracticeSide(randomSide);
-  }, []);
+    if (practiceFilteredPool.length === 0) return;
+    const randomIndex = Math.floor(Math.random() * practiceFilteredPool.length);
+    setPracticeUnit(practiceFilteredPool[randomIndex]);
+  }, [practiceFilteredPool]);
 
+  // Auto-show first board when opening Practice tab with a non-empty filtered pool
   useEffect(() => {
-    if (activeTab === "practice" && practiceOpening == null && libraryItems.length > 0) {
-      startRandomPracticeGame();
+    if (
+      activeTab === "practice" &&
+      practiceFilteredPool.length > 0 &&
+      practiceUnit === null
+    ) {
+      const randomIndex = Math.floor(Math.random() * practiceFilteredPool.length);
+      setPracticeUnit(practiceFilteredPool[randomIndex]);
     }
-  }, [activeTab, practiceOpening, startRandomPracticeGame]);
+  }, [activeTab, practiceFilteredPool, practiceUnit]);
 
   // Menu behaviour changes per tab
   const handleSelectFromMenu = useCallback(
@@ -223,7 +348,6 @@ export function LibraryLayout() {
 
       if (activeTab === "learn") {
         setLearnSelectedOpening(opening);
-        setLearnSelectedLineId(opening.lines?.length ? opening.lines[0].id : null);
       }
     },
     [activeTab]
@@ -243,23 +367,88 @@ export function LibraryLayout() {
           <div className="practice-sidebar">
             <h2 className="menu-title">Practice</h2>
             <p className="practice-description">
-              Play a full opening with a random side. If you make a wrong move, you&apos;ll be
-              prompted to try the correct move.
+              Practice cleared lines only. Filter by opening and color, then pick a board or
+              choose random.
             </p>
-            <button type="button" onClick={startRandomPracticeGame}>
-              New game
-            </button>
-            {practiceOpening && (
-              <div className="practice-opening-meta">
-                <div className="practice-opening-name">{practiceOpening.name}</div>
-                {practiceOpening.eco && (
-                  <div className="practice-opening-eco">ECO {practiceOpening.eco}</div>
-                )}
-                <div className="practice-opening-side">
-                  You are playing as{" "}
-                  <strong>{practiceSide === "white" ? "White" : "Black"}</strong>.
+            {practicePool.length === 0 ? (
+              <p className="practice-empty">
+                No lines cleared yet. Complete lines in the Learn tab to unlock practice boards.
+              </p>
+            ) : (
+              <>
+                <div className="practice-filters">
+                  <label>
+                    <span>Opening</span>
+                    <select
+                      value={practiceOpeningFilter ?? ""}
+                      onChange={(e) =>
+                        setPracticeOpeningFilter(e.target.value || null)
+                      }
+                    >
+                      <option value="">All</option>
+                      {practiceOpeningsWithCleared.map((o) => (
+                        <option key={o.id} value={o.id}>
+                          {o.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    <span>Color</span>
+                    <select
+                      value={practiceColorFilter ?? ""}
+                      onChange={(e) =>
+                        setPracticeColorFilter(
+                          (e.target.value || null) as PracticeSide | null
+                        )
+                      }
+                    >
+                      <option value="">All</option>
+                      <option value="white">White</option>
+                      <option value="black">Black</option>
+                    </select>
+                  </label>
                 </div>
-              </div>
+                <button
+                  type="button"
+                  onClick={startRandomPracticeGame}
+                  disabled={practiceFilteredPool.length === 0}
+                >
+                  Random from filtered
+                </button>
+                <ul className="practice-unit-list" aria-label="Cleared lines">
+                  {practiceFilteredPool.map((u) => (
+                    <li key={getCourseUnitId(u)}>
+                      <button
+                        type="button"
+                        className={
+                          practiceUnit && getCourseUnitId(practiceUnit) === getCourseUnitId(u)
+                            ? "active"
+                            : ""
+                        }
+                        onClick={() => setPracticeUnit(u)}
+                      >
+                        {u.displayName} ({u.color})
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                {practiceUnit && (
+                  <div className="practice-opening-meta">
+                    <div className="practice-opening-name">{practiceUnit.displayName}</div>
+                    {practiceUnit.eco && (
+                      <div className="practice-opening-eco">ECO {practiceUnit.eco}</div>
+                    )}
+                    <div className="practice-opening-side">
+                      You are playing as{" "}
+                      <strong>
+                        {practiceUnit.color === "white" ? "White" : "Black"}
+                      </strong>
+                      .
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         ) : (
@@ -302,27 +491,61 @@ export function LibraryLayout() {
 
         {activeTab === "learn" && (
           <>
-            {learnSelectedOpening ? (
-              <>
-                {learnSelectedOpening.lines?.length && learnSelectedLineId && (
-                  <LineSelector
-                    lines={learnSelectedOpening.lines}
-                    selectedLineId={learnSelectedLineId}
-                    onSelect={setLearnSelectedLineId}
-                  />
-                )}
+            {learnSelectedOpening && learnCurrentUnit ? (
+              <div className="learn-main-wrap">
                 <BoardView
+                  key={`${learnCurrentUnitId}-${learnUnitProgress?.stage ?? "arrows"}`}
                   moves={learnMoves}
                   openingName={learnDisplayName}
                   mode="practice"
-                  practiceSide={learnPracticeSide}
-                  showMoveList
+                  practiceSide={learnCurrentUnit.color}
+                  showMoveList={learnUnitProgress?.stage !== "no-arrows"}
+                  showHintArrow={learnShowHintArrow}
+                  hideStepButtons={learnUnitProgress?.stage === "no-arrows"}
+                  onWrongMove={handleLearnWrongMove}
+                  onCorrectMove={handleLearnCorrectMove}
+                  onLineCleared={handleLearnLineCleared}
                 />
-              </>
+                {(learnUnitProgress?.stage === "arrows" || learnJustClearedUnitId) && (
+                  <div className="learn-action-bar" ref={learnActionBarRef}>
+                    {learnUnitProgress?.stage === "arrows" ? (
+                      <button
+                        type="button"
+                        className="learn-action-button learn-action-button-primary"
+                        onClick={handlePlayFromMemory}
+                      >
+                        Play from Memory
+                      </button>
+                    ) : learnJustClearedUnitId ? (
+                      <button
+                        type="button"
+                        className="learn-action-button learn-action-button-primary"
+                        onClick={() => setLearnJustClearedUnitId(null)}
+                      >
+                        {learnClearedUnitInfo?.isLastLine ? "Complete Opening" : "Next Line"}
+                      </button>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+            ) : learnSelectedOpening && learnOrderedUnits.length > 0 ? (
+              <div className="placeholder">
+                <p>
+                  All lines for this opening are cleared. Great job! Pick another opening or
+                  practice cleared lines in the Practice tab.
+                </p>
+              </div>
+            ) : learnSelectedOpening ? (
+              <div className="placeholder">
+                <p>
+                  Select an opening from the menu to start the course. You&apos;ll work through
+                  each line as White and Black in order.
+                </p>
+              </div>
             ) : (
               <div className="placeholder">
                 <p>
-                  Select an opening from the menu to learn and practice its mainline branches.
+                  Select an opening from the menu to learn and practice its lines as a course.
                 </p>
               </div>
             )}
@@ -331,16 +554,22 @@ export function LibraryLayout() {
 
         {activeTab === "practice" && (
           <>
-            {practiceOpening ? (
+            {practiceUnit ? (
               <BoardView
-                moves={practiceOpening.moves ?? []}
-                openingName={practiceOpening.name}
+                key={getCourseUnitId(practiceUnit)}
+                moves={practiceUnit.moves}
+                openingName={practiceUnit.displayName}
                 mode="practice"
-                practiceSide={practiceSide}
+                practiceSide={practiceUnit.color}
+                hideStepButtons
               />
             ) : (
               <div className="placeholder">
-                <p>Click &ldquo;New game&rdquo; to start practicing a random opening.</p>
+                <p>
+                  {practiceFilteredPool.length === 0
+                    ? "No practice boards match your filters. Clear lines in Learn or change filters."
+                    : "Pick a line from the list or click Random from filtered."}
+                </p>
               </div>
             )}
           </>
@@ -421,20 +650,30 @@ export function LibraryLayout() {
           <div className="mode-controls">
             <span className="mode-label">Learn</span>
             <p className="learn-description">
-              Play through the recommended moves for this opening. If you make an inaccurate move,
-              you&apos;ll see what the mainline continuation should be.
+              Stage 1: play with the hint arrow. Stage 2: play without. Two wrong moves in stage 2
+              send you back to stage 1. Complete stage 2 to clear the line and unlock it for Practice.
             </p>
+            {learnUnitProgress?.stage === "arrows" && (
+              <button
+                type="button"
+                className="learn-action-button"
+                onClick={handlePlayFromMemory}
+              >
+                Play from Memory
+              </button>
+            )}
+            {/* Next Line / Complete Opening appears below the chessboard in the main area when a line is cleared */}
           </div>
         </aside>
       )}
 
-      {activeTab === "practice" && practiceOpening && (
+      {activeTab === "practice" && practiceUnit && (
         <aside className="right-sidebar">
           <div className="mode-controls">
             <span className="mode-label">Practice</span>
             <p className="learn-description">
-              This is a full game-style practice. Follow the moves of the chosen opening from your
-              side; incorrect moves will be flagged so you can correct them.
+              Follow the moves of the chosen line from your side; incorrect moves will be
+              flagged so you can correct them.
             </p>
           </div>
         </aside>
