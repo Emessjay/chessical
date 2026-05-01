@@ -9,7 +9,33 @@ const __dirname = path.dirname(__filename);
 const ROOT = path.join(__dirname, "..");
 const DATA_DIR = path.join(ROOT, "src", "data");
 const OPENINGS_PATH = path.join(DATA_DIR, "openings.json");
-const LEARN_FAMILIES_PATH = path.join(DATA_DIR, "learn-families.json");
+const LEARN_TRACKS_PATH = path.join(DATA_DIR, "learn-tracks.json");
+
+// Side allocation per family id — must stay in sync with derive-tracks.mjs.
+const SIDES_FOR_FAMILY = {
+  "kings-pawn-game": ["white", "black"],
+  "italian": ["white", "black"],
+  "ruy-lopez": ["white", "black"],
+  "scotch": ["white", "black"],
+  "four-knights": ["white", "black"],
+  "sicilian": ["white", "black"],
+  "french": ["white", "black"],
+  "caro-kann": ["black"],
+  "pirc": ["black"],
+  "scandinavian": ["black"],
+  "queens-gambit": ["white", "black"],
+  "slav": ["black"],
+  "kings-indian": ["white", "black"],
+  "gruenfeld": ["black"],
+  "queens-indian": ["black"],
+  "nimzo-indian": ["black"],
+  "benoni": ["black"],
+  "benko": ["black"],
+  "english": ["white"],
+  "reti": ["white"],
+  "catalan": ["white"],
+  "dutch": ["black"],
+};
 
 const TSV_URLS = [
   "https://raw.githubusercontent.com/lichess-org/chess-openings/master/a.tsv",
@@ -112,23 +138,32 @@ function buildAllOpenings(entries) {
   });
 }
 
-/** Write learn-families.json for the app (curated families for Learn tab only). */
-function writeLearnFamilies() {
-  const families = openingFamilies.map((f) => {
-    const out = {
-      id: f.id,
-      name: f.name,
-      namePrefixes: f.lichessNamePrefixes,
-      maxLines: f.maxLines,
-    };
-    if (f.preferredResponses) out.preferredResponses = f.preferredResponses;
-    return out;
-  });
+/** Write learn-tracks.json for the app (one entry per (family, side) the curator wants to teach). */
+function writeLearnTracks() {
+  const tracks = [];
+  for (const f of openingFamilies) {
+    const sides = SIDES_FOR_FAMILY[f.id];
+    if (!sides) {
+      throw new Error(`Family ${f.id} has no side allocation in SIDES_FOR_FAMILY`);
+    }
+    for (const side of sides) {
+      const out = {
+        id: `${f.id}-${side}`,
+        name: f.name,
+        side,
+        namePrefixes: f.lichessNamePrefixes,
+        maxLines: f.maxLines,
+      };
+      if (f.preferredResponses) out.preferredResponses = f.preferredResponses;
+      tracks.push(out);
+    }
+  }
   fs.writeFileSync(
-    LEARN_FAMILIES_PATH,
-    JSON.stringify(families, null, 2),
+    LEARN_TRACKS_PATH,
+    JSON.stringify(tracks, null, 2),
     "utf8"
   );
+  return tracks.length;
 }
 
 async function main() {
@@ -145,7 +180,7 @@ async function main() {
       JSON.stringify(allOpenings, null, 2),
       "utf8"
     );
-    writeLearnFamilies();
+    const trackCount = writeLearnTracks();
 
     // eslint-disable-next-line no-console
     console.log(
@@ -153,9 +188,9 @@ async function main() {
     );
     // eslint-disable-next-line no-console
     console.log(
-      `Wrote ${openingFamilies.length} learn families to ${path.relative(
+      `Wrote ${trackCount} learn tracks (across ${openingFamilies.length} families) to ${path.relative(
         ROOT,
-        LEARN_FAMILIES_PATH
+        LEARN_TRACKS_PATH
       )}`
     );
   } catch (err) {

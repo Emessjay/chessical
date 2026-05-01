@@ -1,5 +1,5 @@
 import { Chess } from "chess.js";
-import type { CourseUnit, Opening } from "../types";
+import type { CourseUnit, LearnTrack } from "../types";
 
 /**
  * Normalize FEN to a comparable form (piece placement, turn, castling, en passant).
@@ -131,13 +131,13 @@ export function pickComputerMove(
 }
 
 /**
- * Returns the set of normalized FENs at the end of each line of an opening.
+ * Returns the set of normalized FENs at the end of each line of a track.
  * Used to detect when we're at "end of opening" and can branch into others.
  */
-export function getTerminalFensForOpening(opening: Opening): Set<string> {
+export function getTerminalFensForTrack(track: LearnTrack): Set<string> {
   const fens = new Set<string>();
-  const lines = opening.lines ?? [
-    { id: opening.id, name: opening.name, moves: opening.moves ?? [] },
+  const lines = track.lines ?? [
+    { id: track.id, name: track.name, moves: track.moves ?? [] },
   ];
   for (const line of lines) {
     const chess = new Chess();
@@ -154,11 +154,11 @@ export function getTerminalFensForOpening(opening: Opening): Set<string> {
 }
 
 /**
- * True if any line in the opening ever reaches any of the given FENs (normalized).
+ * True if any line in the track ever reaches any of the given FENs (normalized).
  */
-export function openingReachesAnyOf(opening: Opening, fens: Set<string>): boolean {
-  const lines = opening.lines ?? [
-    { id: opening.id, name: opening.name, moves: opening.moves ?? [] },
+export function trackReachesAnyOf(track: LearnTrack, fens: Set<string>): boolean {
+  const lines = track.lines ?? [
+    { id: track.id, name: track.name, moves: track.moves ?? [] },
   ];
   for (const line of lines) {
     const chess = new Chess();
@@ -176,26 +176,27 @@ export function openingReachesAnyOf(opening: Opening, fens: Set<string>): boolea
 }
 
 /**
- * When filtering practice by an opening, which opening IDs should be in the pool.
- * Includes the filter opening plus any opening that "continues from" it (some line
- * reaches a terminal position of the filter). So e.g. filtering by King's Pawn
- * Game allows branching into Vienna, Four Knights, Italian, etc. from e4 e5.
+ * When filtering practice by a track, which track IDs should be in the pool.
+ * Includes the filter track plus any same-side track that "continues from" it
+ * (some line reaches a terminal position of the filter). So e.g. filtering by
+ * King's Pawn Game (White) allows branching into Vienna, Four Knights, Italian, etc.
  */
-export function getOpeningIdsForPracticeFilter(
-  filterOpeningId: string,
-  openings: Opening[]
+export function getTrackIdsForPracticeFilter(
+  filterTrackId: string,
+  tracks: LearnTrack[]
 ): Set<string> {
-  const filterOpening = openings.find((o) => o.id === filterOpeningId);
-  if (!filterOpening) return new Set([filterOpeningId]);
+  const filterTrack = tracks.find((t) => t.id === filterTrackId);
+  if (!filterTrack) return new Set([filterTrackId]);
 
-  const terminalFens = getTerminalFensForOpening(filterOpening);
+  const terminalFens = getTerminalFensForTrack(filterTrack);
   const allowed = new Set<string>();
-  allowed.add(filterOpeningId);
+  allowed.add(filterTrackId);
 
-  for (const opening of openings) {
-    if (opening.id === filterOpeningId) continue;
-    if (openingReachesAnyOf(opening, terminalFens)) {
-      allowed.add(opening.id);
+  for (const track of tracks) {
+    if (track.id === filterTrackId) continue;
+    if (track.side !== filterTrack.side) continue;
+    if (trackReachesAnyOf(track, terminalFens)) {
+      allowed.add(track.id);
     }
   }
   return allowed;

@@ -1,10 +1,12 @@
-import type { Opening } from "../types";
+import type { Opening, PracticeSide } from "../types";
+
+type MenuItem = Opening & { side?: PracticeSide };
 
 interface OpeningsMenuProps {
-  openings: Opening[];
-  recentOpenings?: Opening[];
+  openings: MenuItem[];
+  recentOpenings?: MenuItem[];
   selectedId: string | null;
-  onSelect: (opening: Opening) => void;
+  onSelect: (opening: MenuItem) => void;
   searchQuery: string;
   onSearchChange: (value: string) => void;
 }
@@ -14,9 +16,9 @@ function OpeningItem({
   isSelected,
   onSelect,
 }: {
-  opening: Opening;
+  opening: MenuItem;
   isSelected: boolean;
-  onSelect: (opening: Opening) => void;
+  onSelect: (opening: MenuItem) => void;
 }) {
   return (
     <li>
@@ -27,6 +29,11 @@ function OpeningItem({
       >
         {opening.eco && <span className="menu-item-eco">{opening.eco}</span>}
         <span className="menu-item-name">{opening.name}</span>
+        {opening.side && (
+          <span className={`menu-item-side menu-item-side-${opening.side}`}>
+            {opening.side === "white" ? "White" : "Black"}
+          </span>
+        )}
       </button>
     </li>
   );

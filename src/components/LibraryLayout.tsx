@@ -1,10 +1,16 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import openingsData from "../data/openings.json";
-import learnFamiliesData from "../data/learn-families.json";
-import type { Opening, OpeningEntry, LearnUnitProgress, PracticeSide } from "../types";
-import { buildLearnOpenings } from "../lib/buildLearnOpenings";
-import type { LearnFamilyConfig } from "../lib/buildLearnOpenings";
+import learnTracksData from "../data/learn-tracks.json";
+import type {
+  Opening,
+  OpeningEntry,
+  LearnTrack,
+  LearnUnitProgress,
+  PracticeSide,
+} from "../types";
+import { buildLearnTracks } from "../lib/buildLearnTracks";
+import type { LearnTrackConfig } from "../lib/buildLearnTracks";
 import { OpeningsMenu } from "./OpeningsMenu";
 import { MoveControls } from "./MoveControls";
 import { BoardView } from "./BoardView";
@@ -22,7 +28,7 @@ import {
 import { getPositionAfterMoves } from "../lib/chess";
 import {
   getAllowedMovesAtPosition,
-  getOpeningIdsForPracticeFilter,
+  getTrackIdsForPracticeFilter,
   isTerminalPosition,
   pickComputerMove,
 } from "../lib/practiceTree";
@@ -34,8 +40,8 @@ const RECENT_OPENINGS_MAX = 10;
 const RECENT_OPENINGS_DISPLAY = 10;
 
 const allOpenings = openingsData as OpeningEntry[];
-const learnFamilies = learnFamiliesData as LearnFamilyConfig[];
-const learnOpenings: Opening[] = buildLearnOpenings(allOpenings, learnFamilies);
+const learnTrackConfigs = learnTracksData as LearnTrackConfig[];
+const learnTracks: LearnTrack[] = buildLearnTracks(allOpenings, learnTrackConfigs);
 
 type OpeningsTab = "library" | "learn" | "practice";
 
@@ -140,7 +146,7 @@ export function LibraryLayout() {
   const moveListFormatted = formatMoveList(libraryMoves);
 
   // Learn tab: course flow
-  const [learnSelectedOpening, setLearnSelectedOpening] = useState<Opening | null>(null);
+  const [learnSelectedTrack, setLearnSelectedTrack] = useState<LearnTrack | null>(null);
   const [learnProgressVersion, setLearnProgressVersion] = useState(0);
   const [learnUnitProgress, setLearnUnitProgress] = useState<LearnUnitProgress | null>(null);
   /** True when user finished arrow stage and should click "Play from Memory" to start no-arrows. */
@@ -151,12 +157,12 @@ export function LibraryLayout() {
 
   const learnOrderedUnits = useMemo(
     () =>
-      learnSelectedOpening
-        ? getOrderedCourseUnits(learnSelectedOpening, 2, {
+      learnSelectedTrack
+        ? getOrderedCourseUnits(learnSelectedTrack, {
             minMoves: MIN_MOVES_FOR_LEARN,
           })
         : [],
-    [learnSelectedOpening]
+    [learnSelectedTrack]
   );
 
   const learnNextUnit = useMemo(() => {
@@ -183,9 +189,7 @@ export function LibraryLayout() {
 
   const learnShowHintArrow = learnUnitProgress?.stage === "arrows";
   const learnMoves = learnCurrentUnit?.moves ?? [];
-  const learnDisplayName = learnCurrentUnit
-    ? `${learnCurrentUnit.displayName} (${learnCurrentUnit.color})`
-    : "";
+  const learnDisplayName = learnCurrentUnit?.displayName ?? "";
 
   const handleLearnWrongMove = useCallback(() => {
     if (!learnCurrentUnitId || learnUnitProgress?.stage !== "no-arrows") return;
@@ -266,60 +270,73 @@ export function LibraryLayout() {
     }
   }, [learnJustClearedUnitId]);
 
-  const learnVisibleOpenings = useMemo(() => {
-    const byProminence = [...learnOpenings].sort((a, b) => {
+  const learnVisibleTracks = useMemo(() => {
+    const byProminence = [...learnTracks].sort((a, b) => {
       const promA = a.prominence ?? 0;
       const promB = b.prominence ?? 0;
       if (promB !== promA) return promB - promA;
-      return sortByEcoThenName(
-        { eco: a.eco, name: a.name },
-        { eco: b.eco, name: b.name }
-      );
+      if (a.name !== b.name) {
+        return sortByEcoThenName(
+          { eco: a.eco, name: a.name },
+          { eco: b.eco, name: b.name }
+        );
+      }
+      // Same family: white before black.
+      if (a.side !== b.side) return a.side === "white" ? -1 : 1;
+      return 0;
     });
     const q = searchQuery.trim().toLowerCase();
     if (!q) return byProminence;
     return byProminence.filter(
-      (o) =>
-        (o.name ?? "").toLowerCase().includes(q) ||
-        (o.eco ?? "").toLowerCase().includes(q)
+      (t) =>
+        (t.name ?? "").toLowerCase().includes(q) ||
+        (t.eco ?? "").toLowerCase().includes(q)
     );
   }, [searchQuery]);
 
   // Practice tab: organic practice — game moves (null = session not started)
   const [practiceGameMoves, setPracticeGameMoves] = useState<string[] | null>(null);
-  const [practiceOpeningFilter, setPracticeOpeningFilter] = useState<string | null>(null);
+  const [practiceTrackFilter, setPracticeTrackFilter] = useState<string | null>(null);
   const [practiceColorFilter, setPracticeColorFilter] = useState<PracticeSide | null>(null);
   const [practiceLineJustCompleted, setPracticeLineJustCompleted] = useState(false);
   const practicePendingComputerMoveRef = useRef(false);
 
   const practicePool = useMemo(() => {
     const cleared = new Set(getAllClearedUnitIds());
-    return learnOpenings.flatMap((o) => getOrderedCourseUnits(o)).filter((u) =>
+    return learnTracks.flatMap((t) => getOrderedCourseUnits(t)).filter((u) =>
       cleared.has(getCourseUnitId(u))
     );
   }, [learnProgressVersion]);
 
-  const practiceAllowedOpeningIds = useMemo(() => {
-    if (practiceOpeningFilter == null) return null;
-    return getOpeningIdsForPracticeFilter(practiceOpeningFilter, learnOpenings);
-  }, [practiceOpeningFilter]);
+  const practiceAllowedTrackIds = useMemo(() => {
+    if (practiceTrackFilter == null) return null;
+    return getTrackIdsForPracticeFilter(practiceTrackFilter, learnTracks);
+  }, [practiceTrackFilter]);
 
   const practiceFilteredPool = useMemo(() => {
     return practicePool.filter((u) => {
-      if (practiceOpeningFilter != null && practiceAllowedOpeningIds != null) {
-        if (!practiceAllowedOpeningIds.has(u.openingId)) return false;
+      if (practiceTrackFilter != null && practiceAllowedTrackIds != null) {
+        if (!practiceAllowedTrackIds.has(u.openingId)) return false;
       }
       if (practiceColorFilter != null && u.color !== practiceColorFilter) return false;
       return true;
     });
-  }, [practicePool, practiceOpeningFilter, practiceAllowedOpeningIds, practiceColorFilter]);
+  }, [practicePool, practiceTrackFilter, practiceAllowedTrackIds, practiceColorFilter]);
 
-  const practiceOpeningsWithCleared = useMemo(() => {
+  const practiceTracksWithCleared = useMemo(() => {
     const ids = new Set(practicePool.map((u) => u.openingId));
-    return learnOpenings.filter((o) => ids.has(o.id));
+    return learnTracks.filter((t) => ids.has(t.id));
   }, [practicePool]);
 
-  const practiceSide: PracticeSide = practiceColorFilter ?? "white";
+  // When a track is picked the player's side is implicit; without a track the
+  // user can pin a color via the color filter, defaulting to white.
+  const practiceSide: PracticeSide = useMemo(() => {
+    if (practiceTrackFilter != null) {
+      const track = learnTracks.find((t) => t.id === practiceTrackFilter);
+      if (track) return track.side;
+    }
+    return practiceColorFilter ?? "white";
+  }, [practiceTrackFilter, practiceColorFilter]);
 
   const startPracticeGame = useCallback(() => {
     if (practiceFilteredPool.length === 0) return;
@@ -435,17 +452,18 @@ export function LibraryLayout() {
       }
 
       if (activeTab === "learn") {
-        setLearnSelectedOpening(opening);
+        const track = learnTracks.find((t) => t.id === opening.id);
+        if (track) setLearnSelectedTrack(track);
       }
     },
     [activeTab]
   );
 
-  const menuOpenings = activeTab === "library" ? visibleLibraryOpenings : learnVisibleOpenings;
+  const menuOpenings = activeTab === "library" ? visibleLibraryOpenings : learnVisibleTracks;
   const menuSelectedId =
     activeTab === "library"
       ? librarySelectedOpening?.id ?? null
-      : learnSelectedOpening?.id ?? null;
+      : learnSelectedTrack?.id ?? null;
   const menuRecentOpenings = activeTab === "library" ? recentOpenings : [];
 
   return (
@@ -467,36 +485,38 @@ export function LibraryLayout() {
               <>
                 <div className="practice-filters">
                   <label>
-                    <span>Opening</span>
+                    <span>Track</span>
                     <select
-                      value={practiceOpeningFilter ?? ""}
+                      value={practiceTrackFilter ?? ""}
                       onChange={(e) =>
-                        setPracticeOpeningFilter(e.target.value || null)
+                        setPracticeTrackFilter(e.target.value || null)
                       }
                     >
                       <option value="">All</option>
-                      {practiceOpeningsWithCleared.map((o) => (
-                        <option key={o.id} value={o.id}>
-                          {o.name}
+                      {practiceTracksWithCleared.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.name} ({t.side === "white" ? "White" : "Black"})
                         </option>
                       ))}
                     </select>
                   </label>
-                  <label>
-                    <span>Color</span>
-                    <select
-                      value={practiceColorFilter ?? ""}
-                      onChange={(e) =>
-                        setPracticeColorFilter(
-                          (e.target.value || null) as PracticeSide | null
-                        )
-                      }
-                    >
-                      <option value="">All</option>
-                      <option value="white">White</option>
-                      <option value="black">Black</option>
-                    </select>
-                  </label>
+                  {practiceTrackFilter == null && (
+                    <label>
+                      <span>Color</span>
+                      <select
+                        value={practiceColorFilter ?? ""}
+                        onChange={(e) =>
+                          setPracticeColorFilter(
+                            (e.target.value || null) as PracticeSide | null
+                          )
+                        }
+                      >
+                        <option value="">All</option>
+                        <option value="white">White</option>
+                        <option value="black">Black</option>
+                      </select>
+                    </label>
+                  )}
                 </div>
                 <button
                   type="button"
@@ -605,7 +625,7 @@ export function LibraryLayout() {
 
         {activeTab === "learn" && (
           <>
-            {learnSelectedOpening && learnCurrentUnit ? (
+            {learnSelectedTrack && learnCurrentUnit ? (
               <div className="learn-main-wrap">
                 <BoardView
                   key={`${learnCurrentUnitId}-${learnUnitProgress?.stage ?? "arrows"}`}
@@ -644,24 +664,23 @@ export function LibraryLayout() {
                   </div>
                 )}
               </div>
-            ) : learnSelectedOpening && learnOrderedUnits.length > 0 ? (
+            ) : learnSelectedTrack && learnOrderedUnits.length > 0 ? (
               <div className="placeholder">
                 <p>
-                  All lines for this opening are cleared. Great job! Pick another opening or
+                  All lines in this track are cleared. Great job! Pick another track or
                   practice cleared lines in the Practice tab.
                 </p>
               </div>
-            ) : learnSelectedOpening ? (
+            ) : learnSelectedTrack ? (
               <div className="placeholder">
                 <p>
-                  Select an opening from the menu to start the course. You&apos;ll work through
-                  each line as White and Black in order.
+                  This track has no lines yet. Pick another from the menu.
                 </p>
               </div>
             ) : (
               <div className="placeholder">
                 <p>
-                  Select an opening from the menu to learn and practice its lines as a course.
+                  Pick a track (family + side) from the menu to learn its lines as a course.
                 </p>
               </div>
             )}
@@ -773,7 +792,7 @@ export function LibraryLayout() {
         </aside>
       )}
 
-      {activeTab === "learn" && learnSelectedOpening && (
+      {activeTab === "learn" && learnSelectedTrack && (
         <aside className="right-sidebar">
           <div className="mode-controls">
             <span className="mode-label">Learn</span>

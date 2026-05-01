@@ -2,9 +2,12 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Chessboard } from "react-chessboard";
 import {
   getPositionAfterMoves,
+  getPositionAfterMovesFromFen,
   getLastMove,
+  getLastMoveFromFen,
   tryMoveFromSquares,
   getMoveSquares,
+  getMoveSquaresFromFen,
 } from "../lib/chess";
 import { MoveControls } from "./MoveControls";
 import type { PracticeSide } from "../types";
@@ -43,6 +46,10 @@ interface BoardViewProps {
   allowedMoves?: string[];
   /** Organic practice: when set, on correct move call this instead of advancing index; parent appends move and opponent reply. */
   onValidMove?: (san: string) => void;
+  /** When set, board position is derived from this FEN plus moves (used for endgame trainer). */
+  initialFen?: string;
+  /** In practice with allowedMoves: message to show when user plays a wrong move (e.g. "Correct move is Nf3"). */
+  wrongMoveMessage?: string;
   /** Called when the user clicks any square (e.g. to reset after line complete in practice). */
   onBoardClick?: () => void;
   /** In analysis mode: called whenever the user plays any legal move on the board. */
@@ -70,6 +77,8 @@ export function BoardView({
   hideStepButtons = false,
   allowedMoves,
   onValidMove,
+  initialFen,
+  wrongMoveMessage,
   onBoardClick,
   onAnalysisMove,
 }: BoardViewProps) {
@@ -168,9 +177,13 @@ export function BoardView({
     };
   }, [isOpponentTurn, moves.length, onLineCleared]);
 
-  const positionResult = getPositionAfterMoves(moves, currentIndex);
+  const positionResult = initialFen
+    ? getPositionAfterMovesFromFen(initialFen, moves, currentIndex)
+    : getPositionAfterMoves(moves, currentIndex);
   const fen = positionResult.fen;
-  const lastMove = getLastMove(moves, currentIndex);
+  const lastMove = initialFen
+    ? getLastMoveFromFen(initialFen, moves, currentIndex)
+    : getLastMove(moves, currentIndex);
   const squareStyles =
     lastMove != null
       ? {
@@ -238,7 +251,7 @@ export function BoardView({
 
       if (isOrganicPractice && allowedMoves != null && onValidMove != null) {
         if (!allowedMoves.includes(san)) {
-          setPracticeError("Not in your studied lines.");
+          setPracticeError(wrongMoveMessage ?? "Not in your studied lines.");
           onWrongMove?.();
           return false;
         }
@@ -274,6 +287,7 @@ export function BoardView({
       onCorrectMove,
       isOrganicPractice,
       allowedMoves,
+      wrongMoveMessage,
       onValidMove,
       onAnalysisMove,
     ]
@@ -295,7 +309,9 @@ export function BoardView({
   const hintArrows = useMemo(() => {
     if (!showHintArrow || !isPlayerTurn || currentIndex >= maxIndex)
       return undefined;
-    const sq = getMoveSquares(moves, currentIndex);
+    const sq = initialFen
+      ? getMoveSquaresFromFen(initialFen, moves, currentIndex)
+      : getMoveSquares(moves, currentIndex);
     if (!sq) return undefined;
     return [
       {
@@ -304,7 +320,7 @@ export function BoardView({
         color: "rgba(167, 139, 250, 0.72)",
       },
     ];
-  }, [showHintArrow, isPlayerTurn, currentIndex, maxIndex, moves]);
+  }, [showHintArrow, isPlayerTurn, currentIndex, maxIndex, moves, initialFen]);
 
   const boardOrientation = isPractice && practiceSide === "black" ? "black" : "white";
   const allowDragging = (isPractice && isPlayerTurn) || mode === "analysis";

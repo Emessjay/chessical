@@ -25,6 +25,11 @@ export interface Opening {
 
 export type PracticeSide = "white" | "black";
 
+/** A side-specific Learn track: one repertoire piece (family + side). */
+export interface LearnTrack extends Opening {
+  side: PracticeSide;
+}
+
 export interface CourseUnit {
   openingId: string;
   lineId: string;

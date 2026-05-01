@@ -3,7 +3,7 @@ import { getCourseUnitId } from "./course";
 import type { CourseUnit } from "../types";
 
 /** Bumped when opening/line IDs change (e.g. Lichess import) so old progress is not mixed with new. */
-const STORAGE_PREFIX = "chessical_learn_v2_";
+const STORAGE_PREFIX = "chessical_learn_v3_";
 
 function storageKey(unit: CourseUnit): string {
   return STORAGE_PREFIX + getCourseUnitId(unit);

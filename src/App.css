@@ -462,6 +462,63 @@
   margin-bottom: 0.5rem;
 }
 
+.endgame-trainer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.endgame-result {
+  margin: 0;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.endgame-status {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+}
+
+/* Endgame tab: full-width layout, no card box */
+.endgame-trainer-page {
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.endgame-trainer-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding: 0;
+}
+
+.endgame-trainer-main .trainer-title {
+  margin: 0 0 0.25rem 0;
+}
+
+.endgame-trainer-main .endgame-trainer-actions {
+  margin-bottom: 0;
+}
+
+.endgame-board-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+.endgame-board-wrap .board-wrapper {
+  --board-size: min(75vmin, 60vh);
+}
+
 .trainer-meta {
   margin: 0;
   font-size: 0.85rem;
@@ -974,6 +1031,26 @@
   white-space: nowrap;
 }
 
+.menu-item-side {
+  flex-shrink: 0;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+}
+
+.menu-item-side-white {
+  background: rgba(255, 255, 255, 0.85);
+  color: #111;
+}
+
+.menu-item-side-black {
+  background: #111;
+  color: #fff;
+}
+
 /* Mode controls */
 .mode-controls {
   margin-top: 1rem;
@@ -1049,6 +1126,54 @@
 }
 
 .openings-tab.active {
+  background: linear-gradient(
+    180deg,
+    rgba(167, 139, 250, 0.26),
+    rgba(167, 139, 250, 0.18)
+  );
+  border-color: rgba(167, 139, 250, 0.28);
+  color: var(--text);
+  box-shadow:
+    0 6px 18px rgba(0, 0, 0, 0.30),
+    0 0 0 1px rgba(167, 139, 250, 0.14) inset;
+}
+
+/* Trainer tabs (Autopsy / Endgame) */
+.trainer-layout {
+  padding: 0 1rem 1rem;
+}
+
+.trainer-tabs {
+  display: inline-flex;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+  padding: 0.25rem;
+  border: 1px solid var(--border);
+  background: color-mix(in oklab, var(--panel-2) 88%, black);
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25) inset;
+}
+
+.trainer-tab {
+  padding: 0.45rem 0.95rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.08s;
+}
+
+.trainer-tab:hover {
+  background: var(--hover-bg);
+  color: var(--text);
+}
+
+.trainer-tab.active {
   background: linear-gradient(
     180deg,
     rgba(167, 139, 250, 0.26),
