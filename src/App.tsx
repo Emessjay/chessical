@@ -5,7 +5,7 @@ import { TrainerLayout } from "./components/TrainerLayout";
 import { AnalysisPage } from "./pages/AnalysisPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { TrainerPage } from "./pages/TrainerPage";
-import { EndgameTrainerPage } from "./pages/EndgameTrainerPage";
+import { TrainingSuitePage } from "./pages/TrainingSuitePage";
 import "./App.css";
 
 function App() {
@@ -29,7 +29,8 @@ function App() {
         <Route path="trainer" element={<TrainerLayout />}>
           <Route index element={<Navigate to="/trainer/autopsy" replace />} />
           <Route path="autopsy" element={<TrainerPage />} />
-          <Route path="endgame" element={<EndgameTrainerPage />} />
+          <Route path="suite" element={<TrainingSuitePage />} />
+          <Route path="endgame" element={<Navigate to="/trainer/suite" replace />} />
         </Route>
 
         <Route path="settings" element={<SettingsPage />} />
