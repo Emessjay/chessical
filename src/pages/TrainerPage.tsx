@@ -5,11 +5,20 @@ import {
   analyzeGamesForLossCauses,
   lossCauseLabel,
 } from "../lib/trainerAnalysis";
+import { saveAutopsyHistory } from "../lib/autopsyHistory";
 import { StockfishClient } from "../lib/stockfishClient";
 import type { TrainerGame } from "../lib/trainerTypes";
 import type { PerGameAnalysis, TrainerAnalysisResult } from "../lib/trainerTypes";
+import type { LossCause } from "../lib/trainerTypes";
+import { LOSS_CAUSES } from "../lib/trainerAnalysis";
 
 type Status = "idle" | "fetchingGames" | "analyzing" | "done" | "error";
+
+function emptyCauseCounts(): Record<LossCause, number> {
+  const counts = {} as Record<LossCause, number>;
+  for (const c of LOSS_CAUSES) counts[c] = 0;
+  return counts;
+}
 
 function formatTimeControl(raw: string): string {
   if (!raw) return "—";
@@ -43,14 +52,7 @@ export function TrainerPage() {
           summary: {
             totalGames: 0,
             losses: 0,
-            causeCounts: {
-              blundered_tactics: 0,
-              poor_endgame: 0,
-              low_time: 0,
-              early_resignation: 0,
-              hanging_pieces: 0,
-              other: 0,
-            },
+            causeCounts: emptyCauseCounts(),
             topCauses: [],
           },
         });
@@ -67,6 +69,7 @@ export function TrainerPage() {
         runEngineEval = undefined;
       }
       const analysisResult = await analyzeGamesForLossCauses(games, { runEngineEval });
+      saveAutopsyHistory(username, analysisResult.summary);
       setResult(analysisResult);
       setStatus("done");
       setLastUpdated(new Date());
@@ -111,7 +114,7 @@ export function TrainerPage() {
   return (
     <div className="trainer-page">
       <div className="trainer-card">
-        <h1 className="trainer-title">Trainer</h1>
+        <h1 className="trainer-title">Autopsy</h1>
 
         <section className="trainer-section">
           <h2 className="trainer-section-title">Chess.com username</h2>
@@ -177,6 +180,11 @@ export function TrainerPage() {
           <>
             <section className="trainer-section">
               <h2 className="trainer-section-title">Loss causes (last 20 games)</h2>
+              <p className="trainer-description">
+                Causes are labeled by a local board-rule algorithm (optional Stockfish
+                only for early resignation). Unclear cases stay &ldquo;Unclear / mixed&rdquo;
+                instead of forcing a guess. Results feed the Training suite.
+              </p>
               {result.summary.topCauses.length === 0 ? (
                 <p className="trainer-description">
                   No losses in the analyzed games, or no games analyzed.

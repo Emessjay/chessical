@@ -1,0 +1,130 @@
+[
+  {
+    "id": "bv-1",
+    "drill": "board_vision",
+    "fen": "rnb1kbnr/pppp1ppp/8/4p3/4P2q/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 3",
+    "solutions": ["Nxh4"],
+    "prompt": "Black's queen is hanging. Capture it with the knight.",
+    "label": "Queen hanging to knight"
+  },
+  {
+    "id": "bv-2",
+    "drill": "board_vision",
+    "fen": "rnbqkbnr/pppp1ppp/8/4p3/8/5N2/PPPPPPPP/RNBQKB1R w KQkq - 0 2",
+    "solutions": ["Nxe5"],
+    "prompt": "Black's pawn is undefended. Take it.",
+    "label": "Hanging e5 pawn"
+  },
+  {
+    "id": "bv-3",
+    "drill": "board_vision",
+    "fen": "r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 3 4",
+    "solutions": ["Nxh5"],
+    "prompt": "White's queen is hanging. Capture it.",
+    "label": "Queen hanging to knight"
+  },
+  {
+    "id": "bv-4",
+    "drill": "board_vision",
+    "fen": "2r3k1/pp3ppp/8/8/8/8/PP3PPP/2R3K1 w - - 0 1",
+    "solutions": ["Rxc8#"],
+    "prompt": "Black's rook is hanging on the open file. Take it.",
+    "label": "Long-range rook capture"
+  },
+  {
+    "id": "bv-5",
+    "drill": "board_vision",
+    "fen": "4k3/8/8/3n4/4B3/8/8/4K3 w - - 0 1",
+    "solutions": ["Bxd5"],
+    "prompt": "The knight is hanging to your bishop. Take it.",
+    "label": "Hang to bishop"
+  },
+  {
+    "id": "bv-6",
+    "drill": "board_vision",
+    "fen": "6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1",
+    "solutions": ["Ra8#"],
+    "prompt": "Use the long rook check — Black's back rank is weak.",
+    "label": "Long rook check"
+  },
+  {
+    "id": "ad-1",
+    "drill": "attackers_vs_defenders",
+    "fen": "r1bqkb1r/ppp2ppp/2n2n2/3pp3/2B1P3/3P1N2/PPP2PPP/RNBQK2R w KQkq - 0 5",
+    "solutions": ["exd5"],
+    "prompt": "Count attackers on d5 — the capture is safe. Take the pawn.",
+    "label": "Safe capture on d5"
+  },
+  {
+    "id": "ad-2",
+    "drill": "attackers_vs_defenders",
+    "fen": "rnbqkb1r/pppp1ppp/5n2/4p3/2B1P3/8/PPPP1PPP/RNBQK1NR w KQkq - 2 3",
+    "solutions": ["Bxf7+"],
+    "prompt": "f7 is only guarded by the king. Capture with check.",
+    "label": "f7 underdefended"
+  },
+  {
+    "id": "ad-3",
+    "drill": "attackers_vs_defenders",
+    "fen": "r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/3P1N2/PPP2PPP/RNBQK2R w KQkq - 1 5",
+    "solutions": ["c3", "Nc3", "O-O", "Nbd2", "a3", "a4", "h3", "Bd2"],
+    "prompt": "Do not take on e5 — it is defended more than attacked. Play a developing move instead.",
+    "label": "Refuse a bad capture"
+  },
+  {
+    "id": "ad-4",
+    "drill": "attackers_vs_defenders",
+    "fen": "2r2rk1/pp3ppp/2n1bn2/3qp3/3P4/2N1PN2/PP2BPPP/R2Q1RK1 w - - 0 12",
+    "solutions": ["dxe5", "Nxe5"],
+    "prompt": "e5 is underdefended relative to your attackers. Win a pawn.",
+    "label": "Win the e5 pawn"
+  },
+  {
+    "id": "ad-5",
+    "drill": "attackers_vs_defenders",
+    "fen": "rnbqkbnr/ppp2ppp/8/3pp3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 4",
+    "solutions": ["Bxd5", "exd5", "Nxe5"],
+    "prompt": "Count the defenders of d5/e5 and take the hanging material.",
+    "label": "Center hanging"
+  },
+  {
+    "id": "st-1",
+    "drill": "simple_tactics",
+    "fen": "r1bqkb1r/pppp1ppp/2n5/4p3/2B1n3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 4",
+    "solutions": ["Bxf7+", "Nxe5"],
+    "prompt": "Find the tactical blow (fork or check on f7).",
+    "label": "f7 tactic"
+  },
+  {
+    "id": "st-2",
+    "drill": "simple_tactics",
+    "fen": "2r3k1/pp3ppp/4p3/8/8/1Q6/PPP2PPP/2R3K1 w - - 0 1",
+    "solutions": ["Qxb7"],
+    "prompt": "Queen forks the rook and b7 pawn — take with the fork.",
+    "label": "Queen fork"
+  },
+  {
+    "id": "st-3",
+    "drill": "simple_tactics",
+    "fen": "r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
+    "solutions": ["Bxf7+", "Ng5"],
+    "prompt": "Look for a check forcing material or a knight jump to g5.",
+    "label": "Italian motif"
+  },
+  {
+    "id": "st-4",
+    "drill": "simple_tactics",
+    "fen": "6k1/5ppp/8/8/1n6/8/5PPP/1N4K1 w - - 0 1",
+    "solutions": ["Nd2", "Na3", "Nc3"],
+    "prompt": "Improve the knight — challenge Black's knight.",
+    "label": "Knight duel"
+  },
+  {
+    "id": "st-5",
+    "drill": "simple_tactics",
+    "fen": "r2qkb1r/ppp2ppp/2n1bn2/3pp3/2B1P3/3P1N2/PPP2PPP/RNBQK2R w KQkq - 2 6",
+    "solutions": ["Bxd5", "Ng5", "exd5"],
+    "prompt": "Find a forcing capture or knight jump.",
+    "label": "Opening tactic"
+  }
+]

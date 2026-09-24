@@ -14,12 +14,12 @@ export function TrainerLayout() {
           Autopsy
         </NavLink>
         <NavLink
-          to="/trainer/endgame"
+          to="/trainer/suite"
           className={({ isActive }) => `trainer-tab ${isActive ? "active" : ""}`}
           role="tab"
-          aria-selected={pathname.endsWith("/endgame")}
+          aria-selected={pathname.endsWith("/suite") || pathname.endsWith("/endgame")}
         >
-          Endgame
+          Training suite
         </NavLink>
       </div>
       <Outlet />

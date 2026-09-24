@@ -1,8 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
+import { Chess } from "chess.js";
 import type { TrainerGame } from "./trainerTypes";
 import {
   analyzeGamesForLossCauses,
   lossCauseLabel,
+  findHangingCaptures,
+  exchangeNetForSideToMove,
+  evidenceForUserMove,
+  pickPrimaryCause,
+  createEmptyCauseScores,
 } from "./trainerAnalysis";
 
 function baseGame(overrides: Partial<TrainerGame> = {}): TrainerGame {
@@ -25,8 +31,102 @@ function baseGame(overrides: Partial<TrainerGame> = {}): TrainerGame {
 
 describe("lossCauseLabel", () => {
   it("maps known causes to display labels", () => {
-    expect(lossCauseLabel("hanging_pieces")).toBe("Hanging piece");
+    expect(lossCauseLabel("hang_to_long_range")).toBe("Hang to long-range piece");
+    expect(lossCauseLabel("bad_trade")).toBe("Bad trade / unequal exchange");
+    expect(lossCauseLabel("ambiguous")).toBe("Unclear / mixed");
     expect(lossCauseLabel("low_time")).toBe("Low time");
+  });
+});
+
+describe("findHangingCaptures", () => {
+  it("detects an unprotected queen", () => {
+    const chess = new Chess(
+      "rnb1kbnr/pppp1ppp/8/4p3/4P2q/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 3"
+    );
+    const hangs = findHangingCaptures(chess);
+    expect(hangs.some((m) => m.san === "Nxh4")).toBe(true);
+  });
+});
+
+describe("exchangeNetForSideToMove", () => {
+  it("scores a queen-for-pawn grab as a bad trade", () => {
+    const before = new Chess(
+      "r1bqkbnr/pppp1ppp/2n5/4p2Q/4P3/8/PPPP1PPP/RNB1KBNR w KQkq - 2 3"
+    );
+    const capture = before.moves({ verbose: true }).find((m) => m.san === "Qxf7+");
+    expect(capture).toBeTruthy();
+    const net = exchangeNetForSideToMove(before, capture!);
+    expect(net).toBeLessThan(0);
+  });
+});
+
+describe("evidenceForUserMove", () => {
+  it("detects long-range hanging captures on the board", () => {
+    const whiteToTake = new Chess("4k3/8/8/3n4/4B3/8/8/4K3 w - - 0 1");
+    expect(
+      findHangingCaptures(whiteToTake).some((m) => m.san === "Bxd5")
+    ).toBe(true);
+  });
+
+  it("scores hang_by_retreat when a defender vacates", () => {
+    // White rook on d1 defends Nd4; Ra1 leaves the knight hanging to ...Qxd4
+    const before = new Chess("3qkb1r/8/8/8/3N4/8/8/3RK3 w k - 0 1");
+    const after = new Chess(before.fen());
+    const played = after.move({ from: "d1", to: "a1" });
+    expect(played).toBeTruthy();
+    const evidence = evidenceForUserMove(before, after, played!, {
+      inEndgame: false,
+    });
+    expect(evidence.scores.hang_by_retreat ?? 0).toBeGreaterThan(0);
+  });
+
+  it("does not label a capturing queen as hang_by_retreat", () => {
+    const before = new Chess(
+      "r1bqkbnr/pppp1ppp/2n5/4p2Q/4P3/8/PPPP1PPP/RNB1KBNR w KQkq - 2 3"
+    );
+    const after = new Chess(before.fen());
+    const played = after.move("Qxf7+")!;
+    const evidence = evidenceForUserMove(before, after, played, {
+      inEndgame: false,
+    });
+    expect(evidence.scores.bad_trade ?? 0).toBeGreaterThan(0);
+    expect(evidence.scores.hang_by_retreat ?? 0).toBe(0);
+  });
+});
+
+describe("pickPrimaryCause", () => {
+  it("returns ambiguous when board scores are weak", () => {
+    const scores = createEmptyCauseScores();
+    scores.bad_trade = 1;
+    scores.hang_to_long_range = 0.5;
+    const pick = pickPrimaryCause(scores);
+    expect(pick.primary).toBe("ambiguous");
+  });
+
+  it("returns ambiguous when top causes conflict", () => {
+    const scores = createEmptyCauseScores();
+    scores.bad_trade = 3;
+    scores.hang_to_long_range = 2.8;
+    const pick = pickPrimaryCause(scores);
+    expect(pick.primary).toBe("ambiguous");
+  });
+
+  it("picks a clear winner with margin", () => {
+    const scores = createEmptyCauseScores();
+    scores.hang_to_long_range = 4;
+    scores.bad_trade = 1;
+    const pick = pickPrimaryCause(scores, {
+      detailByCause: { hang_to_long_range: "Left rook hanging to bishop" },
+    });
+    expect(pick.primary).toBe("hang_to_long_range");
+    expect(pick.detail).toMatch(/hanging/i);
+  });
+
+  it("forces low_time when timeout is known", () => {
+    const scores = createEmptyCauseScores();
+    scores.hang_to_long_range = 5;
+    const pick = pickPrimaryCause(scores, { forcedLowTime: true });
+    expect(pick.primary).toBe("low_time");
   });
 });
 
@@ -63,18 +163,17 @@ describe("analyzeGamesForLossCauses", () => {
     expect(summary.causeCounts.low_time).toBe(1);
   });
 
-  it("defaults unexplained resignations to blundered_tactics without engine", async () => {
+  it("defaults unexplained resignations to ambiguous without engine", async () => {
     const resign = baseGame({
       termination: "White resigned",
       result: "0-1",
       isUserWhite: true,
-      // Short quiet game — no hanging-piece detection expected
       pgn: `[Result "0-1"]\n[Termination "White resigned"]\n\n1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 0-1`,
     });
 
     const { games } = await analyzeGamesForLossCauses([resign]);
     expect(games[0].isUserLoss).toBe(true);
-    expect(games[0].primaryCause).toBe("blundered_tactics");
+    expect(games[0].primaryCause).toBe("ambiguous");
   });
 
   it("labels early_resignation when engine says position is playable", async () => {
@@ -85,7 +184,7 @@ describe("analyzeGamesForLossCauses", () => {
       pgn: `[Result "0-1"]\n[Termination "White resigned"]\n\n1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 0-1`,
     });
 
-    const runEngineEval = vi.fn(async () => 50); // roughly equal for White
+    const runEngineEval = vi.fn(async () => 50);
     const { games } = await analyzeGamesForLossCauses([resign], {
       runEngineEval,
     });
@@ -104,12 +203,10 @@ describe("analyzeGamesForLossCauses", () => {
     const { games } = await analyzeGamesForLossCauses([resign], {
       runEngineEval: async () => -900,
     });
-    expect(games[0].primaryCause).toBe("blundered_tactics");
+    expect(games[0].primaryCause).toBe("ambiguous");
   });
 
-  it("detects hanging pieces when user leaves material en prise", async () => {
-    // After 3.Qxf7+, black can take the queen with no recapture. Extra quiet
-    // moves keep the hang outside the last-third "endgame" window.
+  it("detects a bad queen trade when user snatches on f7", async () => {
     const hang = baseGame({
       termination: "White resigned",
       result: "0-1",
@@ -121,7 +218,8 @@ describe("analyzeGamesForLossCauses", () => {
     });
 
     const { games } = await analyzeGamesForLossCauses([hang]);
-    expect(games[0].primaryCause).toBe("hanging_pieces");
-    expect(games[0].detail).toMatch(/hanging/i);
+    expect(games[0].isUserLoss).toBe(true);
+    expect(games[0].primaryCause).toBe("bad_trade");
+    expect(games[0].detail).toMatch(/trade|material/i);
   });
 });
