@@ -51,7 +51,8 @@ export interface GetOrderedCourseUnitsOpts {
 
 /**
  * Returns course units in the order they should be learned: lines in the order
- * `buildLearnTracks` already sorted them (general → specific by prominence).
+ * `buildLearnTracks` already sorted them (common complete systems first,
+ * rarer sidelines later).
  */
 export function getOrderedCourseUnits(
   track: LearnTrack,

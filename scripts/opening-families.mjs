@@ -125,7 +125,7 @@ export const openingFamilies = [
   {
     id: "reti",
     name: "Reti Opening",
-    lichessNamePrefixes: ["Reti Opening"],
+    lichessNamePrefixes: ["Reti Opening", "Réti Opening"],
     maxLines: 6,
   },
   {

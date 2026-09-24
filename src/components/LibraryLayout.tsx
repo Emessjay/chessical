@@ -40,7 +40,7 @@ const RECENT_OPENINGS_MAX = 10;
 const RECENT_OPENINGS_DISPLAY = 10;
 
 const allOpenings = openingsData as OpeningEntry[];
-const learnTrackConfigs = learnTracksData as LearnTrackConfig[];
+const learnTrackConfigs = learnTracksData as unknown as LearnTrackConfig[];
 const learnTracks: LearnTrack[] = buildLearnTracks(allOpenings, learnTrackConfigs);
 
 type OpeningsTab = "library" | "learn" | "practice";

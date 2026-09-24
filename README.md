@@ -22,15 +22,16 @@ npm run tauri:dev
 
 ### Openings data
 
-The **Library** tab shows every opening from the [Lichess opening database](https://github.com/lichess-org/chess-openings). The **Learn** tab shows a curated set of high-level families (e.g. Sicilian, Queen's Gambit); within each family, lines are ordered from most general to most specific.
+The **Library** tab shows every opening from the [Lichess opening database](https://github.com/lichess-org/chess-openings). The **Learn** tab shows a curated set of high-level families (e.g. Sicilian, Queen's Gambit); within each family, **common complete main lines are taught before rarer sidelines**, using per-line popularity (`lineProminence` in `learn-tracks.json`).
 
 To refresh openings from Lichess (run occasionally or after upstream changes):
 
 ```bash
 npm run fetch:openings
+npm run compute:learn-prominence
 ```
 
-This overwrites `src/data/openings.json` (full list) and `src/data/learn-families.json` (family config for Learn). You do not need to run this to build or run the app; the repo includes generated data.
+`fetch:openings` overwrites `src/data/openings.json` and refreshes track stubs in `src/data/learn-tracks.json` (preserving existing popularity fields). `compute:learn-prominence` sets family `prominence` and per-line `lineProminence` from Lichess masters explorer when `LICHESS_TOKEN` is set, or from opening-database corridor traffic otherwise. You do not need to run these to build or run the app; the repo includes generated data.
 
 ## Build installers
 
