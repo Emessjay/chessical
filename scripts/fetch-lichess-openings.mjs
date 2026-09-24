@@ -138,8 +138,25 @@ function buildAllOpenings(entries) {
   });
 }
 
-/** Write learn-tracks.json for the app (one entry per (family, side) the curator wants to teach). */
+/**
+ * Write learn-tracks.json for the app (one entry per (family, side)).
+ * Preserves prominence / lineProminence / eco from an existing file so a
+ * fetch does not wipe popularity data; re-run `npm run compute:learn-prominence`
+ * after fetch when openings change.
+ */
 function writeLearnTracks() {
+  const previousById = new Map();
+  if (fs.existsSync(LEARN_TRACKS_PATH)) {
+    try {
+      const prev = JSON.parse(fs.readFileSync(LEARN_TRACKS_PATH, "utf8"));
+      if (Array.isArray(prev)) {
+        for (const t of prev) previousById.set(t.id, t);
+      }
+    } catch {
+      // ignore unreadable previous file
+    }
+  }
+
   const tracks = [];
   for (const f of openingFamilies) {
     const sides = SIDES_FOR_FAMILY[f.id];
@@ -147,20 +164,30 @@ function writeLearnTracks() {
       throw new Error(`Family ${f.id} has no side allocation in SIDES_FOR_FAMILY`);
     }
     for (const side of sides) {
+      const id = `${f.id}-${side}`;
+      const prev = previousById.get(id);
       const out = {
-        id: `${f.id}-${side}`,
+        id,
         name: f.name,
         side,
         namePrefixes: f.lichessNamePrefixes,
         maxLines: f.maxLines,
       };
       if (f.preferredResponses) out.preferredResponses = f.preferredResponses;
+      if (prev?.prominence != null) out.prominence = prev.prominence;
+      if (prev?.eco != null) out.eco = prev.eco;
+      if (prev?.lineProminence && typeof prev.lineProminence === "object") {
+        out.lineProminence = prev.lineProminence;
+      }
+      if (prev?.lineProminenceSource) {
+        out.lineProminenceSource = prev.lineProminenceSource;
+      }
       tracks.push(out);
     }
   }
   fs.writeFileSync(
     LEARN_TRACKS_PATH,
-    JSON.stringify(tracks, null, 2),
+    JSON.stringify(tracks, null, 2) + "\n",
     "utf8"
   );
   return tracks.length;

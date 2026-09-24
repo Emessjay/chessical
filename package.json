@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "fetch:openings": "node ./scripts/fetch-lichess-openings.mjs",
+    "compute:learn-prominence": "node ./scripts/compute-learn-prominence-from-masters.mjs",
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",

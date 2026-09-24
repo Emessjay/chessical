@@ -1,95 +1,260 @@
 import type { LearnTrack, OpeningLine, OpeningEntry, PracticeSide } from "../types";
 
-/**
- * Order entries by their position in the named-theory tree as a proxy for
- * master-game prominence. Lines with rich named sub-theory (e.g. Staunton
- * Gambit Accepted, with Chigorin and Nimzowitsch variations underneath) are
- * mainstream by definition; orphan lines with no continuations (e.g.
- * Omega-Isis Gambit) are obscure.
- *
- * We sort globally by (curator boost desc, subtree size desc, depth asc,
- * length asc, name) — this surfaces the most-developed parent lines first
- * across the whole tree, so the first N lines cover breadth (different White
- * setups) before depth (sub-variations of one setup).
- */
-function orderByDeepTheory(
-  entries: OpeningEntry[],
-  lineProm: Record<string, number>
-): OpeningEntry[] {
+function isPrefix(prefix: string[], full: string[]): boolean {
+  if (prefix.length > full.length) return false;
+  for (let i = 0; i < prefix.length; i++) {
+    if (prefix[i] !== full[i]) return false;
+  }
+  return true;
+}
+
+/** Longest common move prefix across entries (family stem). */
+function longestCommonPrefix(entries: OpeningEntry[]): string[] {
   if (entries.length === 0) return [];
-
-  const isPrefix = (p: string[], full: string[]): boolean => {
-    if (p.length > full.length) return false;
-    for (let i = 0; i < p.length; i++) {
-      if (p[i] !== full[i]) return false;
+  let prefix = entries[0].moves.slice();
+  for (const entry of entries.slice(1)) {
+    let i = 0;
+    while (
+      i < prefix.length &&
+      i < entry.moves.length &&
+      prefix[i] === entry.moves[i]
+    ) {
+      i++;
     }
-    return true;
+    prefix = prefix.slice(0, i);
+    if (prefix.length === 0) break;
+  }
+  return prefix;
+}
+
+/**
+ * Corridor traffic: how many family openings pass through this entry's
+ * position (entry.moves is a prefix of theirs). Offline proxy for play count.
+ */
+function corridorTraffic(entries: OpeningEntry[]): Map<string, number> {
+  const scores = new Map<string, number>();
+  for (const entry of entries) {
+    let count = 0;
+    for (const other of entries) {
+      if (isPrefix(entry.moves, other.moves)) count += 1;
+    }
+    scores.set(entry.id, count);
+  }
+  return scores;
+}
+
+function hasPositiveProminence(lineProm: Record<string, number>): boolean {
+  return Object.values(lineProm).some((v) => typeof v === "number" && v > 0);
+}
+
+type RankedLine = {
+  entry: OpeningEntry;
+  /** Popularity used for ordering (explorer games or corridor traffic). */
+  score: number;
+};
+
+/**
+ * Order and select lines so common, complete systems come first and rarer
+ * sidelines later.
+ *
+ * Rules:
+ * 1. Popularity — `lineProminence` (Lichess explorer game counts when present)
+ *    or offline corridor traffic through the named position.
+ * 2. Completeness — collapse same display name to the longest move list;
+ *    prefer lines at least ~a full setup deep over family stubs.
+ * 3. Breadth then depth — first pass takes the most popular complete line
+ *    per early branch (diversity key); second pass fills remaining slots
+ *    with the next most popular lines (sidelines / deeper variations).
+ * 4. `preferredResponses` boosts lines whose first reply after the stem
+ *    matches the curator's popular-reply order (e.g. English).
+ */
+function selectLinesForTrack(
+  familyEntries: OpeningEntry[],
+  playerEnding: OpeningEntry[],
+  track: LearnTrackConfig
+): OpeningEntry[] {
+  if (playerEnding.length === 0) return [];
+
+  const lineNameOf = (entry: OpeningEntry): string => {
+    let lineName = entry.name;
+    const prefix = track.name + ": ";
+    if (lineName.startsWith(prefix)) lineName = lineName.slice(prefix.length);
+    return lineName;
   };
 
-  const byLength = [...entries].sort((a, b) => a.moves.length - b.moves.length);
+  const stem = longestCommonPrefix(familyEntries);
+  const lineProm = track.lineProminence ?? {};
+  const hasStoredProm = hasPositiveProminence(lineProm);
+  const useExplorer = track.lineProminenceSource === "explorer";
+  const traffic = hasStoredProm ? null : corridorTraffic(familyEntries);
 
-  type Node = {
-    entry: OpeningEntry;
-    children: Node[];
-    subtreeSize: number;
-    depth: number;
-    /** Sum of explicit lineProminence overrides in this subtree (curator boost). */
-    promBoost: number;
-  };
-  const nodes = new Map<string, Node>();
-  const roots: Node[] = [];
-
-  for (const entry of byLength) {
-    const node: Node = {
-      entry,
-      children: [],
-      subtreeSize: 1,
-      depth: 1,
-      promBoost: lineProm[entry.id] ?? 0,
-    };
-    nodes.set(entry.id, node);
-
-    let parent: Node | null = null;
-    let bestLen = -1;
-    for (const other of byLength) {
-      if (other === entry) break;
-      if (other.moves.length >= entry.moves.length) continue;
-      if (other.moves.length <= bestLen) continue;
-      if (isPrefix(other.moves, entry.moves)) {
-        parent = nodes.get(other.id) ?? null;
-        bestLen = other.moves.length;
+  const rawScore = (entry: OpeningEntry): number => {
+    let score = hasStoredProm
+      ? (lineProm[entry.id] ?? 0)
+      : (traffic?.get(entry.id) ?? 0);
+    // Corridor traffic counts named theory, which inflates gambit trees.
+    // Demote unless scores are real explorer play counts.
+    if (!useExplorer && /gambit/i.test(entry.name)) score *= 0.4;
+    if (
+      track.preferredResponses &&
+      track.preferredResponses.length > 0 &&
+      entry.moves.length > stem.length
+    ) {
+      const reply = entry.moves[stem.length];
+      const idx = track.preferredResponses.indexOf(reply);
+      if (idx >= 0) {
+        score *= 1 + (track.preferredResponses.length - idx) * 0.15;
       }
     }
-    if (parent) {
-      parent.children.push(node);
-      node.depth = parent.depth + 1;
-    } else {
-      roots.push(node);
+    return score;
+  };
+
+  // Collapse display names → a complete-but-not-obscure teaching line,
+  // with popularity = max across all depths of that name.
+  const byName = new Map<string, RankedLine>();
+  const grouped = new Map<string, OpeningEntry[]>();
+  for (const entry of playerEnding) {
+    const name = lineNameOf(entry);
+    const list = grouped.get(name) ?? [];
+    list.push(entry);
+    grouped.set(name, list);
+  }
+  const minComplete = Math.max(6, stem.length + 2);
+  const TEACHING_MAX_PLY = 16;
+  for (const [name, group] of grouped) {
+    const scored = group.map((entry) => ({ entry, score: rawScore(entry) }));
+    const maxScore = Math.max(...scored.map((s) => s.score), 0);
+    const isTitle = name === track.name || name === "";
+
+    // Family-title: teach a real setup when one exists, keep max corridor score.
+    if (isTitle) {
+      const setup = scored
+        .filter(
+          (s) =>
+            s.entry.moves.length >= minComplete &&
+            s.entry.moves.length <= TEACHING_MAX_PLY
+        )
+        .sort(
+          (a, b) =>
+            b.score - a.score || b.entry.moves.length - a.entry.moves.length
+        );
+      if (setup[0]) {
+        byName.set(name, { entry: setup[0].entry, score: maxScore });
+        continue;
+      }
+    }
+
+    const strong = scored.filter((s) => s.score >= maxScore * 0.5);
+    let pool = strong.filter((s) => s.entry.moves.length <= TEACHING_MAX_PLY);
+    if (pool.length === 0) pool = strong;
+    pool.sort(
+      (a, b) =>
+        b.entry.moves.length - a.entry.moves.length || b.score - a.score
+    );
+    const best = pool[0] ?? scored[0];
+    if (!best) continue;
+    byName.set(name, {
+      entry: best.entry,
+      score: maxScore,
+    });
+  }
+
+  const items = [...byName.values()].sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    if (b.entry.moves.length !== a.entry.moves.length) {
+      return b.entry.moves.length - a.entry.moves.length;
+    }
+    return lineNameOf(a.entry).localeCompare(lineNameOf(b.entry));
+  });
+
+  const maxLines = track.maxLines ?? items.length;
+
+  const isFamilyStub = (entry: OpeningEntry): boolean => {
+    const name = lineNameOf(entry);
+    if (name === track.name || name === "") return true;
+    // Bare stem / near-stem with no variation label.
+    if (entry.moves.length <= stem.length + 2 && !name.includes(",")) {
+      return true;
+    }
+    return false;
+  };
+
+  const completeItems = items.filter(
+    (item) =>
+      item.entry.moves.length >= minComplete && !isFamilyStub(item.entry)
+  );
+  const rankingPool =
+    completeItems.length >= Math.min(3, maxLines) ? completeItems : items;
+
+  // Pick diversity key depth that best separates the top complete candidates
+  // (e.g. Najdorf a6 vs Dragon g6 at 10 ply, not only Open at 8).
+  const keySample = rankingPool.slice(0, Math.max(maxLines * 2, 12));
+  let keyLen = 8;
+  let bestDistinct = 0;
+  for (let len = 6; len <= 12; len += 2) {
+    const keys = new Set(
+      keySample.map((item) =>
+        item.entry.moves.slice(0, Math.min(len, item.entry.moves.length)).join(" ")
+      )
+    );
+    if (keys.size >= bestDistinct) {
+      bestDistinct = keys.size;
+      keyLen = len;
     }
   }
 
-  // Post-order: aggregate subtree size and curator boosts up the tree.
-  const finalize = (node: Node) => {
-    for (const c of node.children) {
-      finalize(c);
-      node.subtreeSize += c.subtreeSize;
-      node.promBoost += c.promBoost;
-    }
+  const selected: OpeningEntry[] = [];
+  const usedNames = new Set<string>();
+  const usedKeys = new Set<string>();
+
+  const tryAdd = (item: RankedLine, pass: "diversity" | "fill"): boolean => {
+    const name = lineNameOf(item.entry);
+    if (usedNames.has(name)) return false;
+    const key = item.entry.moves
+      .slice(0, Math.min(keyLen, item.entry.moves.length))
+      .join(" ");
+    if (pass === "diversity" && usedKeys.has(key)) return false;
+    usedNames.add(name);
+    usedKeys.add(key);
+    selected.push(item.entry);
+    return true;
   };
-  for (const r of roots) finalize(r);
 
-  const all = [...nodes.values()];
-  all.sort((a, b) => {
-    if (b.promBoost !== a.promBoost) return b.promBoost - a.promBoost;
-    if (b.subtreeSize !== a.subtreeSize) return b.subtreeSize - a.subtreeSize;
-    if (a.depth !== b.depth) return a.depth - b.depth;
-    if (a.entry.moves.length !== b.entry.moves.length) {
-      return a.entry.moves.length - b.entry.moves.length;
+  const intro = items.find((item) => isFamilyStub(item.entry));
+  const systemsBudget = intro ? Math.max(1, maxLines - 1) : maxLines;
+
+  // Pass 1 — common complete systems across distinct early branches.
+  // Deeper diversity keys (chosen above) separate main systems such as
+  // Najdorf vs Dragon without dropping parent Classical/Modern stems.
+  for (const item of rankingPool) {
+    if (selected.length >= systemsBudget) break;
+    if (isFamilyStub(item.entry)) continue;
+    tryAdd(item, "diversity");
+  }
+
+  // Pass 2 — rarer sidelines / extra variations by popularity.
+  for (const item of items) {
+    if (selected.length >= systemsBudget) break;
+    if (isFamilyStub(item.entry)) continue;
+    tryAdd(item, "fill");
+  }
+
+  // Prepend intro stub when present so learners see the opening identity first.
+  if (intro && selected.length <= maxLines) {
+    const introName = lineNameOf(intro.entry);
+    if (!usedNames.has(introName)) {
+      selected.unshift(intro.entry);
+      usedNames.add(introName);
     }
-    return a.entry.name.localeCompare(b.entry.name);
-  });
+  }
 
-  return all.map((n) => n.entry);
+  // If still short (tiny families), fill with anything left including stubs.
+  for (const item of items) {
+    if (selected.length >= maxLines) break;
+    tryAdd(item, "fill");
+  }
+
+  return selected.slice(0, maxLines);
 }
 
 export interface LearnTrackConfig {
@@ -101,11 +266,17 @@ export interface LearnTrackConfig {
   /** Prominence as approximate percentage of the time this opening is played (0–100). Used for ordering. */
   prominence?: number;
   /**
-   * Optional per-line prominence override (by OpeningEntry id).
-   * Higher numbers are shown earlier within the track.
+   * Per-line popularity (by OpeningEntry id). Prefer Lichess explorer game
+   * counts when available; otherwise build time falls back to corridor traffic.
+   * Higher numbers are taught earlier within the track.
    */
   lineProminence?: Record<string, number>;
-  /** Opponent's first response moves in priority order (most common first). Used to order same-length lines. */
+  /**
+   * How `lineProminence` was produced. `"explorer"` disables gambit demotion
+   * (counts are real game totals). `"corridor"` or omitted applies demotion.
+   */
+  lineProminenceSource?: "explorer" | "corridor";
+  /** Opponent's first response moves in priority order (most common first). */
   preferredResponses?: string[];
   /** ECO code for the family (e.g. B07 for Pirc). If omitted, taken from the longest line. */
   eco?: string;
@@ -113,7 +284,7 @@ export interface LearnTrackConfig {
 
 /**
  * Build the list of Learn tracks: one LearnTrack per curated (family, side),
- * with lines = openings from the full list that match the track (ordered general → specific).
+ * with lines ordered common complete systems first, rarer sidelines later.
  */
 export function buildLearnTracks(
   allEntries: OpeningEntry[],
@@ -139,47 +310,13 @@ export function buildLearnTracks(
     // N plies is white iff N is odd.
     const playerLastPlyParity = track.side === "white" ? 1 : 0;
     const playerEnding = matches.filter(
-      (entry) => entry.moves.length % 2 === playerLastPlyParity
+      (entry) =>
+        entry.moves.length >= 2 &&
+        entry.moves.length % 2 === playerLastPlyParity
     );
     if (playerEnding.length === 0) continue;
 
-    const lineNameOf = (entry: OpeningEntry): string => {
-      let lineName = entry.name;
-      const prefix = track.name + ": ";
-      if (lineName.startsWith(prefix)) lineName = lineName.slice(prefix.length);
-      return lineName;
-    };
-
-    // Lichess often lists the same display name at multiple ply depths (e.g.
-    // "Najdorf Variation" at 10p, 11p, 14p — all snapshots of the same line).
-    // The shorter snapshots are crucial parents in the prefix tree (the 10p
-    // Najdorf is the natural parent of all 11p Najdorf-X sub-variations), so
-    // we keep them while building the tree. After ordering, we collapse each
-    // display name to its longest-move version but inherit the maximum
-    // subtree weight across all same-named snapshots so the concept ranks at
-    // the level of its most-developed parent.
-    const lineProm = track.lineProminence ?? {};
-    const ordered = orderByDeepTheory(playerEnding, lineProm);
-    const longestPerName = new Map<string, OpeningEntry>();
-    for (const entry of playerEnding) {
-      const name = lineNameOf(entry);
-      const existing = longestPerName.get(name);
-      if (!existing || entry.moves.length > existing.moves.length) {
-        longestPerName.set(name, entry);
-      }
-    }
-    const uniqueByName: OpeningEntry[] = [];
-    const emittedNames = new Set<string>();
-    for (const entry of ordered) {
-      const name = lineNameOf(entry);
-      if (emittedNames.has(name)) continue;
-      const longest = longestPerName.get(name);
-      if (!longest) continue;
-      uniqueByName.push(longest);
-      emittedNames.add(name);
-    }
-
-    const limited = uniqueByName.slice(0, track.maxLines ?? uniqueByName.length);
+    const limited = selectLinesForTrack(matches, playerEnding, track);
     const lines: OpeningLine[] = limited.map((entry) => {
       let lineName = entry.name;
       const prefix = track.name + ": ";
@@ -192,8 +329,10 @@ export function buildLearnTracks(
       };
     });
 
-    // Use track eco override, or ECO from the longest line (most specific), not the first/shortest
-    const lineForEco = [...lines].sort((a, b) => b.moves.length - a.moves.length)[0];
+    // Use track eco override, or ECO from the longest line (most specific).
+    const lineForEco = [...lines].sort(
+      (a, b) => b.moves.length - a.moves.length
+    )[0];
     const trackEco = track.eco ?? lineForEco?.eco ?? lines[0]?.eco;
 
     result.push({
