@@ -35,7 +35,8 @@ export interface StockfishPvLine {
 
 type EngineWorker = Worker;
 
-function parseUciInfo(line: string): StockfishInfo | null {
+/** Parse a UCI `info ...` line into structured fields. Exported for unit tests. */
+export function parseUciInfo(line: string): StockfishInfo | null {
   if (!line.startsWith("info ")) return null;
   const tokens = line.trim().split(/\s+/);
 
@@ -94,7 +95,8 @@ function parseUciInfo(line: string): StockfishInfo | null {
   return info;
 }
 
-function parseBestMove(line: string): StockfishBestMove | null {
+/** Parse a UCI `bestmove ...` line. Exported for unit tests. */
+export function parseBestMove(line: string): StockfishBestMove | null {
   if (!line.startsWith("bestmove ")) return null;
   const tokens = line.trim().split(/\s+/);
   const bestmove = tokens[1];
